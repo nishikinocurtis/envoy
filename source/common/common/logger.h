@@ -80,6 +80,7 @@ const static bool should_log = true;
   FUNCTION(rds)                                                                                    \
   FUNCTION(redis)                                                                                  \
   FUNCTION(router)                                                                                 \
+  FUNCTION(rr_manager)                                                                             \
   FUNCTION(runtime)                                                                                \
   FUNCTION(stats)                                                                                  \
   FUNCTION(secret)                                                                                 \

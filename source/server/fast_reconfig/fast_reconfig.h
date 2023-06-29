@@ -5,11 +5,17 @@
 #pragma once
 
 #include "envoy/server/fast_reconfig.h"
+#include "envoy/server/instance.h"
+#include "envoy/server/listener_manager.h"
+#include "envoy/network/listen_socket.h"
+
+#include "source/common/common/logger.h"
 
 namespace Envoy {
 namespace Server {
 
-class FastReconfigServerImpl : public FastReconfigServer {
+class FastReconfigServerImpl : public FastReconfigServer,
+                               Logger::Loggable<Logger::Id::rr_manager> {
 
 };
 
