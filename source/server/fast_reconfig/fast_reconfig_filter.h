@@ -1,3 +1,7 @@
+//
+// Created by curtis on 7/5/23.
+//
+
 #pragma once
 
 #include <functional>
@@ -19,17 +23,15 @@
 namespace Envoy {
 namespace Server {
 
-/**
- * A terminal HTTP filter that implements server admin functionality.
+/*
+ * A gRPC filter that implements re-config fast pushing endpoint functionality.
+ * Adopted from Envoy::Server::AdminFilter.
  */
-class AdminFilter : public ServerEndpointFilterBase,
-                    Logger::Loggable<Logger::Id::admin> {
-public:
-  using AdminServerCallbackFunction = std::function<Http::Code(
-      absl::string_view path_and_query, Http::ResponseHeaderMap& response_headers,
-      Buffer::OwnedImpl& response, AdminFilter& filter)>;
+class FastReconfigFilter : public ServerEndpointFilterBase,
+                           Logger::Loggable<Logger::Id::rr_manager> {
 
-  AdminFilter(Admin::GenRequestFn admin_handler_func);
+public:
+  FastReconfigFilter(Admin::GenRequestFn fast_reconfig_handler_func);
 
   // AdminStream, override for logging.
   Http::StreamDecoderFilterCallbacks& getDecoderFilterCallbacks() const override;
@@ -40,8 +42,8 @@ private:
    * Called when an admin request has been completely received.
    */
   void onComplete() override;
-  Admin::GenRequestFn admin_handler_fn_;
+
 };
 
-} // namespace Server
-} // namespace Envoy
+}
+}

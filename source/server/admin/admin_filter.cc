@@ -1,83 +1,23 @@
 #include "source/server/admin/admin_filter.h"
 
-#include "source/server/admin/utils.h"
-
 namespace Envoy {
 namespace Server {
 
+/*
+ * Currently copied twice to be compatible with existing implementation.
+ */
 AdminFilter::AdminFilter(Admin::GenRequestFn admin_handler_fn)
-    : admin_handler_fn_(admin_handler_fn) {}
-
-Http::FilterHeadersStatus AdminFilter::decodeHeaders(Http::RequestHeaderMap& headers,
-                                                     bool end_stream) {
-  request_headers_ = &headers;
-  if (end_stream) {
-    onComplete();
-  }
-
-  return Http::FilterHeadersStatus::StopIteration;
-}
-
-Http::FilterDataStatus AdminFilter::decodeData(Buffer::Instance& data, bool end_stream) {
-  // Currently we generically buffer all admin request data in case a handler wants to use it.
-  // If we ever support streaming admin requests we may need to revisit this. Note, we must use
-  // addDecodedData() here since we might need to perform onComplete() processing if end_stream is
-  // true.
-  decoder_callbacks_->addDecodedData(data, false);
-
-  if (end_stream) {
-    onComplete();
-  }
-
-  return Http::FilterDataStatus::StopIterationNoBuffer;
-}
-
-Http::FilterTrailersStatus AdminFilter::decodeTrailers(Http::RequestTrailerMap&) {
-  onComplete();
-  return Http::FilterTrailersStatus::StopIteration;
-}
-
-void AdminFilter::onDestroy() {
-  for (const auto& callback : on_destroy_callbacks_) {
-    callback();
-  }
-}
-
-void AdminFilter::addOnDestroyCallback(std::function<void()> cb) {
-  on_destroy_callbacks_.push_back(std::move(cb));
-}
+    : ServerEndpointFilterBase(admin_handler_fn),
+      admin_handler_fn_(admin_handler_fn) {}
 
 Http::StreamDecoderFilterCallbacks& AdminFilter::getDecoderFilterCallbacks() const {
   ASSERT(decoder_callbacks_ != nullptr);
   return *decoder_callbacks_;
 }
 
-const Buffer::Instance* AdminFilter::getRequestBody() const {
-  return decoder_callbacks_->decodingBuffer();
-}
-
 const Http::RequestHeaderMap& AdminFilter::getRequestHeaders() const {
   ASSERT(request_headers_ != nullptr);
   return *request_headers_;
-}
-
-Http::Utility::QueryParams AdminFilter::queryParams() const {
-  absl::string_view path = request_headers_->getPathValue();
-  Http::Utility::QueryParams query = Http::Utility::parseAndDecodeQueryString(path);
-  if (!query.empty()) {
-    return query;
-  }
-
-  // Check if the params are in the request's body.
-  if (request_headers_->getContentTypeValue() ==
-      Http::Headers::get().ContentTypeValues.FormUrlEncoded) {
-    const Buffer::Instance* body = getRequestBody();
-    if (body != nullptr) {
-      query = Http::Utility::parseFromBody(body->toString());
-    }
-  }
-
-  return query;
 }
 
 void AdminFilter::onComplete() {
