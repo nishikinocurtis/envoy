@@ -23,7 +23,7 @@ namespace Server {
 class ServerEndpointFilterBase : public Http::PassThroughFilter,
                                  public AdminStream {
 public:
-  ServerEndpointFilterBase(Admin::GenRequestFn server_handler_func);
+  ServerEndpointFilterBase() = default;
   // Http::StreamFilterBase
   // Handlers relying on the reference should use addOnDestroyCallback()
   // to add a callback that will notify them when the reference is no
@@ -53,7 +53,6 @@ protected:
    * Called when an admin request has been completely received.
    */
   virtual void onComplete() PURE;
-  Admin::GenRequestFn server_handler_fn_;
   bool end_stream_on_complete_ = true;
   Http::RequestHeaderMap* request_headers_{};
   std::list<std::function<void()>> on_destroy_callbacks_;

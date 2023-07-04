@@ -8,8 +8,6 @@
 namespace Envoy {
 namespace Server {
 
-ServerEndpointFilterBase::ServerEndpointFilterBase(Admin::GenRequestFn server_handler_func)
-    : server_handler_fn_(server_handler_func) {}
 
 Http::FilterHeadersStatus ServerEndpointFilterBase::decodeHeaders(Http::RequestHeaderMap& headers,
                                                      bool end_stream) {

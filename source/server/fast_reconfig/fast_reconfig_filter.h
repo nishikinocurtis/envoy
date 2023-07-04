@@ -23,6 +23,7 @@
 namespace Envoy {
 namespace Server {
 
+class GrpcRequestPtr;
 /*
  * A gRPC filter that implements re-config fast pushing endpoint functionality.
  * Adopted from Envoy::Server::AdminFilter.
@@ -31,7 +32,8 @@ class FastReconfigFilter : public ServerEndpointFilterBase,
                            Logger::Loggable<Logger::Id::rr_manager> {
 
 public:
-  FastReconfigFilter(Admin::GenRequestFn fast_reconfig_handler_func);
+  using GenRequestFn = std::function<GrpcRequestPtr(AdminStream&)>;
+  FastReconfigFilter(GenRequestFn fast_reconfig_handler_func);
 
   // AdminStream, override for logging.
   Http::StreamDecoderFilterCallbacks& getDecoderFilterCallbacks() const override;
@@ -42,7 +44,7 @@ private:
    * Called when an admin request has been completely received.
    */
   void onComplete() override;
-
+  GenRequestFn server_handler_fn_;
 };
 
 }

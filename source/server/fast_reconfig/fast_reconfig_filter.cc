@@ -7,8 +7,8 @@
 namespace Envoy {
 namespace Server {
 
-FastReconfigFilter::FastReconfigFilter(Admin::GenRequestFn fast_reconfig_handler_func)
-    : ServerEndpointFilterBase(fast_reconfig_handler_func) {}
+FastReconfigFilter::FastReconfigFilter(GenRequestFn fast_reconfig_handler_func)
+    : server_handler_fn_(fast_reconfig_handler_func) {}
 
 Http::StreamDecoderFilterCallbacks& FastReconfigFilter::getDecoderFilterCallbacks() const {
   ASSERT(decoder_callbacks_ != nullptr);
@@ -21,6 +21,9 @@ const Http::RequestHeaderMap& FastReconfigFilter::getRequestHeaders() const {
 }
 
 void FastReconfigFilter::onComplete() {
+  absl::string_view path = request_headers_->getPathValue();
+  ENVOY_STREAM_LOG(debug, "request complete: path: {}", *decoder_callbacks_, path);
+
 
 }
 
