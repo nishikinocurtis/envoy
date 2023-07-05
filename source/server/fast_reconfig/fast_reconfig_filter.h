@@ -9,6 +9,7 @@
 
 #include "envoy/http/filter.h"
 #include "envoy/server/admin.h"
+#include "envoy/server/fast_reconfig.h"
 
 #include "source/common/buffer/buffer_impl.h"
 #include "source/common/common/logger.h"
@@ -22,8 +23,6 @@
 
 namespace Envoy {
 namespace Server {
-
-class GrpcRequestPtr;
 /*
  * A gRPC filter that implements re-config fast pushing endpoint functionality.
  * Adopted from Envoy::Server::AdminFilter.
@@ -32,7 +31,7 @@ class FastReconfigFilter : public ServerEndpointFilterBase,
                            Logger::Loggable<Logger::Id::rr_manager> {
 
 public:
-  using GenRequestFn = std::function<GrpcRequestPtr(AdminStream&)>;
+  using GenRequestFn = std::function<FastReconfigServer::GrpcRequestProcessorPtr(AdminStream&)>;
   FastReconfigFilter(GenRequestFn fast_reconfig_handler_func);
 
   // AdminStream, override for logging.

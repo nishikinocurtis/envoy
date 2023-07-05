@@ -25,6 +25,8 @@ void FastReconfigFilter::onComplete() {
   absl::string_view path = request_headers_->getPathValue();
   ENVOY_STREAM_LOG(debug, "request complete: path: {}", *decoder_callbacks_, path);
 
+  auto grpc_headers = Http::ResponseHeaderMapImpl::create();
+  RELEASE_ASSERT(request_headers_, "");
 
 }
 

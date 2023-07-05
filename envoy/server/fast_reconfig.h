@@ -24,7 +24,32 @@ namespace Server {
  */
 
 class FastReconfigServer {
+public:
+  /*
+   * Provide a fake stream manner GrpcMessage for one time
+   * Reconfig Processing
+   */
+  class GrpcMessageOverHttp {
+  public:
+    virtual ~GrpcMessageOverHttp() = default;
 
+    virtual Http::Code getMessageStatus() PURE;
+    virtual Http::ResponseHeaderMap& getMessageHeader() PURE;
+    virtual Buffer::Instance& fetchNextMessageBodyChunk() PURE;
+  };
+
+  /*
+   * Wrapper for a GrpcRequest Processor functor, generate a
+   * GrpcMessageOverHttp for stream manner encoder compatibility.
+   * */
+  class GrpcRequestProcessor {
+  public:
+    virtual ~GrpcRequestProcessor() = default;
+
+    virtual GrpcMessageOverHttp& process() PURE;
+  };
+
+  using GrpcRequestProcessorPtr = std::unique_ptr<GrpcRequestProcessor>;
 };
 
 
