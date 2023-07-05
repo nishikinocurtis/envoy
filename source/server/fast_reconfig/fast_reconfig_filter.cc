@@ -3,6 +3,7 @@
 //
 
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
+#include "source/server/admin/utils.h"
 
 namespace Envoy {
 namespace Server {

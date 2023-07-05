@@ -8,8 +8,7 @@ namespace Server {
  * Currently copied twice to be compatible with existing implementation.
  */
 AdminFilter::AdminFilter(Admin::GenRequestFn admin_handler_fn)
-    : ServerEndpointFilterBase(admin_handler_fn),
-      admin_handler_fn_(admin_handler_fn) {}
+    : admin_handler_fn_(admin_handler_fn) {}
 
 Http::StreamDecoderFilterCallbacks& AdminFilter::getDecoderFilterCallbacks() const {
   ASSERT(decoder_callbacks_ != nullptr);

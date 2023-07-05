@@ -32,6 +32,19 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
+    name = "fast_reconfig_interface",
+    hdrs = ["fast_reconfig.h"],
+    deps = [
+        ":config_tracker_interface",
+        "//envoy/buffer:buffer_interface",
+        "//envoy/http:filter_interface",
+        "//envoy/http:header_map_interface",
+        "//envoy/http:query_params_interface",
+        "//envoy/network:listen_socket_interface",
+    ]
+)
+
+envoy_cc_library(
     name = "api_listener_interface",
     hdrs = ["api_listener.h"],
     deps = ["//envoy/http:api_listener_interface"],

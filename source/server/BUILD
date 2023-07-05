@@ -520,3 +520,19 @@ envoy_cc_library(
         "@envoy_api//envoy/admin/v3:pkg_cc_proto",
     ],
 )
+
+envoy_cc_library(
+    name = "server_endpoint_listener_lib",
+    srcs = ["server_endpoint_filter.cc"],
+    hdrs = ["server_endpoint_filter.h"],
+    deps = [
+        "//source/server/admin:utils_lib",
+        "//envoy/http:filter_interface",
+        "//envoy/server:admin_interface",
+        "//source/common/buffer:buffer_lib",
+        "//source/common/common:minimal_logger_lib",
+        "//source/common/http:codes_lib",
+        "//source/common/http:header_map_lib",
+        "//source/extensions/filters/http/common:pass_through_filter_lib",
+    ]
+)
