@@ -6,7 +6,7 @@
 #include "envoy/buffer/buffer.h"
 #include "envoy/http/codes.h"
 
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "re2/re2.h"
 

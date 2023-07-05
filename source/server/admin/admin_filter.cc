@@ -1,5 +1,5 @@
 #include "source/server/admin/admin_filter.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 namespace Envoy {
 namespace Server {

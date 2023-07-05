@@ -4,7 +4,7 @@
 
 #include "source/common/common/fine_grain_logger.h"
 #include "source/common/common/logger.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "absl/strings/str_split.h"
 

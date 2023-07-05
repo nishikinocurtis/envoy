@@ -11,7 +11,7 @@
 
 #include "source/server/admin/handler_ctx.h"
 #include "source/server/admin/stats_request.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "absl/strings/string_view.h"
 

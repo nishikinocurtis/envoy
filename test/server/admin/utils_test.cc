@@ -1,6 +1,6 @@
 #include "envoy/http/query_params.h"
 
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "test/test_common/utility.h"
 

@@ -5,7 +5,7 @@
 
 #include "source/common/buffer/buffer_impl.h"
 #include "source/server/admin/stats_params.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 namespace Envoy {
 namespace Server {

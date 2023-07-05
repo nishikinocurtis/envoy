@@ -33,7 +33,7 @@
 #include "source/common/router/config_impl.h"
 #include "source/extensions/listener_managers/listener_manager/listener_impl.h"
 #include "source/extensions/request_id/uuid/config.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"

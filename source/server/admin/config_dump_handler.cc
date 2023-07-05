@@ -9,7 +9,7 @@
 #include "source/common/http/headers.h"
 #include "source/common/http/utility.h"
 #include "source/common/network/utility.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 namespace Envoy {
 namespace Server {

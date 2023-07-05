@@ -4,7 +4,7 @@
 
 #include "source/server/admin/stats_params.h"
 #include "source/server/admin/stats_render.h"
-#include "source/server/admin/utils.h"
+#include "source/server/utils.h"
 
 #include "absl/container/btree_map.h"
 #include "absl/types/variant.h"
