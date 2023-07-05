@@ -40,7 +40,7 @@ envoy_cc_library(
         ":server_cmd_handler_lib",
         ":server_info_handler_lib",
         ":stats_handler_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:filter_interface",
         "//envoy/network:filter_interface",
         "//envoy/network:listen_socket_interface",
@@ -105,7 +105,7 @@ envoy_cc_library(
     srcs = ["admin_filter.cc"],
     hdrs = ["admin_filter.h"],
     deps = [
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//source/server:server_endpoint_listener_lib"
     ],
 )
@@ -123,7 +123,7 @@ envoy_cc_library(
     srcs = ["stats_params.cc"],
     hdrs = ["stats_params.h"],
     deps = [
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/buffer:buffer_interface",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
@@ -140,7 +140,7 @@ envoy_cc_library(
         ":prometheus_stats_lib",
         ":stats_params_lib",
         ":stats_render_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//source/common/http:codes_lib",
         "//source/common/http:header_map_lib",
@@ -159,7 +159,7 @@ envoy_cc_library(
     ]),
     deps = [
         ":stats_params_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/server:admin_interface",
         "//source/common/buffer:buffer_lib",
         "//source/common/filesystem:filesystem_lib",
@@ -180,7 +180,7 @@ envoy_cc_library(
         ":prometheus_stats_lib",
         ":stats_render_lib",
         ":stats_request_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -197,7 +197,7 @@ envoy_cc_library(
     hdrs = ["prometheus_stats.h"],
     deps = [
         ":stats_params_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/stats:custom_stat_namespaces_interface",
         "//source/common/buffer:buffer_lib",
         "//source/common/stats:histogram_lib",
@@ -210,7 +210,7 @@ envoy_cc_library(
     hdrs = ["listeners_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -227,7 +227,7 @@ envoy_cc_library(
     hdrs = ["runtime_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -243,7 +243,7 @@ envoy_cc_library(
     hdrs = ["logs_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -259,7 +259,7 @@ envoy_cc_library(
     srcs = ["profiling_handler.cc"],
     hdrs = ["profiling_handler.h"],
     deps = [
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//source/common/buffer:buffer_lib",
@@ -275,7 +275,7 @@ envoy_cc_library(
     hdrs = ["server_cmd_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -291,7 +291,7 @@ envoy_cc_library(
     hdrs = ["server_info_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -311,7 +311,7 @@ envoy_cc_library(
     hdrs = ["clusters_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -330,7 +330,7 @@ envoy_cc_library(
     deps = [
         ":config_tracker_lib",
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:codes_interface",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
@@ -351,25 +351,11 @@ envoy_cc_library(
     hdrs = ["init_dump_handler.h"],
     deps = [
         ":handler_ctx_lib",
-        ":utils_lib",
+        "//source/server:utils_lib",
         "//envoy/server:admin_interface",
         "//envoy/server:instance_interface",
         "//source/common/http:codes_lib",
         "//source/common/http:header_map_lib",
-        "@envoy_api//envoy/admin/v3:pkg_cc_proto",
-    ],
-)
-
-envoy_cc_library(
-    name = "utils_lib",
-    srcs = ["utils.cc"],
-    hdrs = ["utils.h"],
-    deps = [
-        "//envoy/init:manager_interface",
-        "//source/common/common:enum_to_int",
-        "//source/common/http:codes_lib",
-        "//source/common/http:header_map_lib",
-        "//source/common/http:headers_lib",
         "@envoy_api//envoy/admin/v3:pkg_cc_proto",
     ],
 )

@@ -517,6 +517,10 @@ envoy_cc_library(
     deps = [
         "//envoy/init:manager_interface",
         "//source/common/common:assert_lib",
+        "//source/common/common:enum_to_int",
+        "//source/common/http:codes_lib",
+        "//source/common/http:header_map_lib",
+        "//source/common/http:headers_lib",
         "@envoy_api//envoy/admin/v3:pkg_cc_proto",
     ],
 )
@@ -526,7 +530,7 @@ envoy_cc_library(
     srcs = ["server_endpoint_filter.cc"],
     hdrs = ["server_endpoint_filter.h"],
     deps = [
-        "//source/server/admin:utils_lib",
+        "//source/server:utils_lib",
         "//envoy/http:filter_interface",
         "//envoy/server:admin_interface",
         "//source/common/buffer:buffer_lib",
