@@ -10,6 +10,7 @@
 #include "envoy/buffer/buffer.h"
 #include "envoy/common/pure.h"
 #include "envoy/grpc/context.h"
+#include "envoy/config/subscription.h"
 #include "envoy/server/admin.h"
 
 #include "absl/strings/string_view.h"
@@ -24,7 +25,7 @@ namespace Server {
  * the hash value and version_info.
  */
 
-class FastReconfigServer {
+class FastReconfigServer : public Config::SubscriptionCallbacks {
 public:
   /*
    * Provide a fake stream manner GrpcMessage for one time

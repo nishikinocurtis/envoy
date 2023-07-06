@@ -19,6 +19,15 @@ namespace Server {
 class FastReconfigServerImpl : public FastReconfigServer,
                                Logger::Loggable<Logger::Id::rr_manager> {
 public:
+  // Config::SubscriptionCallbacks
+  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
+                      const std::string& version_info) override;
+  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
+                      const Protobuf::RepeatedPtrField<std::string>& removed_resources,
+                      const std::string& system_version_info) override;
+  void onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
+                            const EnvoyException* e) override;
+
   class GrpcMessageImpl;
 
   class GrpcRequestProcessorImpl : public GrpcRequestProcessor {
