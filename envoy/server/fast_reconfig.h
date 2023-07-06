@@ -10,6 +10,7 @@
 #include "envoy/buffer/buffer.h"
 #include "envoy/common/pure.h"
 #include "envoy/grpc/context.h"
+#include "envoy/server/admin.h"
 
 #include "absl/strings/string_view.h"
 
@@ -34,9 +35,10 @@ public:
     virtual ~GrpcMessageOverHttp() = default;
 
     virtual Http::Code getMessageStatus() PURE;
-    virtual Http::ResponseHeaderMap& getMessageHeader() PURE;
-    virtual Buffer::Instance& fetchNextMessageBodyChunk() PURE;
+    virtual std::unique_ptr<Http::ResponseHeaderMap> dumpMessageHeader() PURE;
+    virtual std::pair<bool, std::unique_ptr<Buffer::Instance>> fetchNextMessageBodyChunk() PURE;
   };
+  using GrpcMessageOverHttpPtr = std::unique_ptr<GrpcMessageOverHttp>;
 
   /*
    * Wrapper for a GrpcRequest Processor functor, generate a
@@ -46,8 +48,14 @@ public:
   public:
     virtual ~GrpcRequestProcessor() = default;
 
-    virtual GrpcMessageOverHttp& process() PURE;
+    virtual GrpcMessageOverHttpPtr process() PURE;
+
+
   };
+
+  using HandlerCb =
+      std::function<Http::Code(AdminStream& admin_stream, Http::ResponseHeaderMap& response_headers,
+                               Buffer::Instance& response)>;
 
   using GrpcRequestProcessorPtr = std::unique_ptr<GrpcRequestProcessor>;
 };

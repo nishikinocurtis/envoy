@@ -36,6 +36,7 @@ envoy_cc_library(
     hdrs = ["fast_reconfig.h"],
     deps = [
         ":config_tracker_interface",
+        ":admin_interface",
         "//envoy/buffer:buffer_interface",
         "//envoy/http:filter_interface",
         "//envoy/http:header_map_interface",
