@@ -13,6 +13,9 @@
 #include "source/common/http/conn_manager_config.h"
 #include "source/common/http/conn_manager_impl.h"
 #include "source/common/buffer/buffer_impl.h"
+#include "source/server/fast_reconfig/listener_handler.h"
+
+#include "source/extensions/listener_managers/listener_manager/lds_api.h"
 
 #include "source/common/common/logger.h"
 
@@ -26,7 +29,8 @@ class FastReconfigServerImpl : public FastReconfigServer,
                                public Http::ConnectionManagerConfig,
                                Logger::Loggable<Logger::Id::rr_manager> {
 public:
-  FastReconfigServerImpl();
+  FastReconfigServerImpl(Server::Instance& server,
+                         LdsApiImpl& listener_reconfig_callback);
 
   class GrpcMessageImpl;
 
@@ -59,7 +63,9 @@ public:
     Http::Code code_ = Http::Code::OK;
   };
 
-
+private:
+  Server::Instance& server_;
+  ListenerHandler listener_reconfig_handler_instance_;
 };
 
 } // namespace Server

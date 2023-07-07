@@ -39,7 +39,7 @@ Http::Code ListenerHandler::pushNewListenersHandler(Envoy::Server::AdminStream &
 
     auto added_resources =
       Config::SpecifiedResourcesWrapper<envoy::service::discovery::v3::Resource>
-        (*resource_decoder_, ddr.resources(), ddr.system_version_info());
+        (*listener_sub_handle_.getResourceDecoder(), ddr.resources(), ddr.system_version_info());
 
     callback_.onConfigUpdate(added_resources.refvec_,
                              ddr.removed_resources(),

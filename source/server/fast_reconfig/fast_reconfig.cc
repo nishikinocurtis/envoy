@@ -12,6 +12,14 @@ namespace Server {
 using GrpcMessageImpl = FastReconfigServerImpl::GrpcMessageImpl;
 using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImpl;
 
+FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
+                                               LdsApiImpl& listener_reconfig_callback)
+    : server_(server),
+      listener_reconfig_handler_instance_(server_, listener_reconfig_callback)
+                                               {
+
+}
+
 GrpcMessageImpl::GrpcMessageImpl() {
   headers_ = Http::ResponseHeaderMapImpl::create();
   buf_ = std::make_unique<Buffer::OwnedImpl>();
