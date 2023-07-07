@@ -123,5 +123,18 @@ struct DecodedResourcesWrapper {
   std::vector<Config::DecodedResourceRef> refvec_;
 };
 
+template<typename Element>
+struct SpecifiedResourcesWrapper : public DecodedResourcesWrapper {
+    SpecifiedResourcesWrapper(OpaqueResourceDecoder& resource_decoder,
+                              const Protobuf::RepeatedPtrField<Element>& resources,
+                              const std::string& version) {
+      for (const auto& resource : resources) {
+        Protobuf::Any any_resource;
+        any_resource.PackFrom(resource);
+        pushBack((DecodedResourceImpl::fromResource(resource_decoder, any_resource, version)));
+      }
+    }
+};
+
 } // namespace Config
 } // namespace Envoy

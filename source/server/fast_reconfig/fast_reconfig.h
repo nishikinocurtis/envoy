@@ -4,11 +4,14 @@
 
 #pragma once
 
+#include "envoy/network/filter.h"
 #include "envoy/server/fast_reconfig.h"
 #include "envoy/server/instance.h"
 #include "envoy/server/listener_manager.h"
 #include "envoy/network/listen_socket.h"
 #include "source/common/http/header_map_impl.h"
+#include "source/common/http/conn_manager_config.h"
+#include "source/common/http/conn_manager_impl.h"
 #include "source/common/buffer/buffer_impl.h"
 
 #include "source/common/common/logger.h"
@@ -17,16 +20,13 @@ namespace Envoy {
 namespace Server {
 
 class FastReconfigServerImpl : public FastReconfigServer,
+                               public Network::FilterChainManager,
+                               public Network::FilterChainFactory,
+                               public Http::FilterChainFactory,
+                               public Http::ConnectionManagerConfig,
                                Logger::Loggable<Logger::Id::rr_manager> {
 public:
-  // Config::SubscriptionCallbacks
-  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
-                      const std::string& version_info) override;
-  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
-                      const Protobuf::RepeatedPtrField<std::string>& removed_resources,
-                      const std::string& system_version_info) override;
-  void onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
-                            const EnvoyException* e) override;
+  FastReconfigServerImpl();
 
   class GrpcMessageImpl;
 

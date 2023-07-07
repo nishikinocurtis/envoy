@@ -25,7 +25,7 @@ namespace Server {
  * the hash value and version_info.
  */
 
-class FastReconfigServer : public Config::SubscriptionCallbacks {
+class FastReconfigServer {
 public:
   /*
    * Provide a fake stream manner GrpcMessage for one time

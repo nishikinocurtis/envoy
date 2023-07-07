@@ -29,3 +29,12 @@ envoy_cc_library(
         "//source/common/buffer:buffer_lib",
     ]
 )
+
+envoy_cc_library(
+    name = "listener_reconfig_lib",
+    srcs = ["listener_handler.cc"],
+    hdrs = ["listener_handler.h"],
+    deps = [
+        "//source/common/protobuf:protobuf",
+    ]
+)
