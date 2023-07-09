@@ -526,7 +526,7 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
-    name = "server_endpoint_listener_lib",
+    name = "server_endpoint_filter_lib",
     srcs = ["server_endpoint_filter.cc"],
     hdrs = ["server_endpoint_filter.h"],
     deps = [
@@ -538,5 +538,18 @@ envoy_cc_library(
         "//source/common/http:codes_lib",
         "//source/common/http:header_map_lib",
         "//source/extensions/filters/http/common:pass_through_filter_lib",
+    ]
+)
+
+envoy_cc_library(
+    name = "server_endpoint_listener_lib",
+    hdrs = ["server_endpoint_listener.h"],
+    deps = [
+        "//envoy/network:listener_interface",
+        "//source/common/common:assert_lib",
+        "//source/common/common:basic_resource_lib",
+        "//source/common/http:conn_manager_config_interface",
+        "//source/common/http:conn_manager_lib",
+        "//source/common/network:connection_balancer_lib",
     ]
 )

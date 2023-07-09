@@ -106,7 +106,7 @@ envoy_cc_library(
     hdrs = ["admin_filter.h"],
     deps = [
         "//source/server:utils_lib",
-        "//source/server:server_endpoint_listener_lib"
+        "//source/server:server_endpoint_filter_lib"
     ],
 )
 

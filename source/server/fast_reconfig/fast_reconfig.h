@@ -66,6 +66,8 @@ public:
 private:
   Server::Instance& server_;
   ListenerHandler listener_reconfig_handler_instance_;
+  Network::SocketSharedPtr socket_;
+  std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
 };
 
 } // namespace Server
