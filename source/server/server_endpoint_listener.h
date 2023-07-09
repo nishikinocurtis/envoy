@@ -61,7 +61,7 @@ public:
   Network::NopConnectionBalancerImpl connection_balancer_;
   BasicResourceLimitImpl open_connections_;
 
-private:
+protected:
   const std::vector<AccessLog::InstanceSharedPtr> empty_access_logs_;
   std::unique_ptr<Init::Manager> init_manager_;
   const bool ignore_global_conn_limit_;

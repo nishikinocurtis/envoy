@@ -12,6 +12,12 @@ envoy_cc_library(
     hdrs = ["fast_reconfig.h"],
     deps = [
         ":fast_reconfig_filter_lib",
+        "//source/server:server_endpoint_listener_lib",
+        "//envoy/http:filter_interface",
+        "//envoy/network:filter_interface",
+        "//envoy/network:listen_socket_interface",
+        "//envoy/server:instance_interface",
+        "//envoy/server:listener_manager_interface",
         "//source/extensions/listener_managers/listener_manager:lds_api_lib",
     ]
 )

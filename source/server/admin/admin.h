@@ -48,6 +48,7 @@
 #include "source/server/admin/server_cmd_handler.h"
 #include "source/server/admin/server_info_handler.h"
 #include "source/server/admin/stats_handler.h"
+#include "source/server/server_endpoint_listener.h"
 
 #include "absl/strings/string_view.h"
 
@@ -380,12 +381,14 @@ private:
     bool socket_create_{false};
   };
 
-  class AdminListener : public Network::ListenerConfig {
+  class AdminListener : public ServerEndpointListener {
   public:
     AdminListener(AdminImpl& parent, Stats::ScopeSharedPtr&& listener_scope)
-        : parent_(parent), name_("admin"), scope_(std::move(listener_scope)),
-          stats_(Http::ConnectionManagerImpl::generateListenerStats("http.admin.", *scope_)),
-          init_manager_(nullptr), ignore_global_conn_limit_(parent.ignore_global_conn_limit_) {}
+        : ServerEndpointListener(std::move(listener_scope),
+                                 "admin",
+                                 parent.ignore_global_conn_limit_),
+                                 parent_(parent)
+           {}
 
     // Network::ListenerConfig
     Network::FilterChainManager& filterChainManager() override { return parent_; }
@@ -393,41 +396,9 @@ private:
     std::vector<Network::ListenSocketFactoryPtr>& listenSocketFactories() override {
       return parent_.socket_factories_;
     }
-    bool bindToPort() const override { return true; }
-    bool handOffRestoredDestinationConnections() const override { return false; }
-    uint32_t perConnectionBufferLimitBytes() const override { return 0; }
-    std::chrono::milliseconds listenerFiltersTimeout() const override { return {}; }
-    bool continueOnListenerFiltersTimeout() const override { return false; }
-    Stats::Scope& listenerScope() override { return *scope_; }
-    uint64_t listenerTag() const override { return 0; }
-    const std::string& name() const override { return name_; }
-    Network::UdpListenerConfigOptRef udpListenerConfig() override { return {}; }
-    Network::InternalListenerConfigOptRef internalListenerConfig() override { return {}; }
-    envoy::config::core::v3::TrafficDirection direction() const override {
-      return envoy::config::core::v3::UNSPECIFIED;
-    }
-    Network::ConnectionBalancer& connectionBalancer(const Network::Address::Instance&) override {
-      return connection_balancer_;
-    }
-    ResourceLimit& openConnections() override { return open_connections_; }
-    const std::vector<AccessLog::InstanceSharedPtr>& accessLogs() const override {
-      return empty_access_logs_;
-    }
-    uint32_t tcpBacklogSize() const override { return ENVOY_TCP_BACKLOG_SIZE; }
-    Init::Manager& initManager() override { return *init_manager_; }
-    bool ignoreGlobalConnLimit() const override { return ignore_global_conn_limit_; }
 
     AdminImpl& parent_;
-    const std::string name_;
-    Stats::ScopeSharedPtr scope_;
-    Http::ConnectionManagerListenerStats stats_;
-    Network::NopConnectionBalancerImpl connection_balancer_;
-    BasicResourceLimitImpl open_connections_;
 
-  private:
-    const std::vector<AccessLog::InstanceSharedPtr> empty_access_logs_;
-    std::unique_ptr<Init::Manager> init_manager_;
-    const bool ignore_global_conn_limit_;
   };
   using AdminListenerPtr = std::unique_ptr<AdminListener>;
 

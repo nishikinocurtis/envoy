@@ -14,6 +14,7 @@
 #include "source/common/http/conn_manager_impl.h"
 #include "source/common/buffer/buffer_impl.h"
 #include "source/server/fast_reconfig/listener_handler.h"
+#include "source/server/server_endpoint_listener.h"
 
 #include "source/extensions/listener_managers/listener_manager/lds_api.h"
 
@@ -64,10 +65,31 @@ public:
   };
 
 private:
+  class ReconfigListener : public ServerEndpointListener {
+  public:
+    ReconfigListener(FastReconfigServerImpl& parent, Stats::ScopeSharedPtr&& listener_scope)
+        : ServerEndpointListener(std::move(listener_scope),
+                                 "admin",
+                                 parent.ignore_global_conn_limit_),
+          parent_(parent)
+    {}
+
+    // Network::ListenerConfig
+    Network::FilterChainManager& filterChainManager() override { return parent_; }
+    Network::FilterChainFactory& filterChainFactory() override { return parent_; }
+    std::vector<Network::ListenSocketFactoryPtr>& listenSocketFactories() override {
+      return parent_.socket_factories_;
+    }
+
+    FastReconfigServerImpl& parent_;
+  };
+  using AdminListenerPtr = std::unique_ptr<ReconfigListener>;
+
   Server::Instance& server_;
   ListenerHandler listener_reconfig_handler_instance_;
   Network::SocketSharedPtr socket_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
+  bool ignore_global_conn_limit_;
 };
 
 } // namespace Server
