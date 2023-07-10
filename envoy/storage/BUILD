@@ -12,6 +12,6 @@ envoy_cc_library(
     name = "storage_interface",
     hdrs = ["storage.h"],
     deps = [
-
+        "//envoy/buffer:buffer_interface",
     ]
 )
