@@ -16,8 +16,17 @@ class StorageMetadata {
   // service, pod, module, session, version
   // ttl
   // recover handshake port, uri.
-
+public:
+  uint32_t recover_port_, ttl_;
+  std::string recover_uri_, resource_id_, svc_id_, pod_id_, method_name_;
   // need design choice: how to implement incremental (delta) storage?
+};
+
+class StateObject {
+public:
+  StorageMetadata metadata_;
+
+  virtual void writeObject(Buffer::Instance& obj) PURE;
 };
 
 /**
@@ -26,7 +35,7 @@ class StorageMetadata {
 
 class Storage {
 public:
-  virtual void write(StorageMetadata& metadata, Buffer::Instance& obj //, some bytes array, or object
+  virtual void write(StorageMetadata& metadata, StateObject& obj //, some bytes array, or object
   ) PURE;
 
   virtual void replicate(const std::string& resource_id) PURE;
@@ -50,6 +59,9 @@ public:
   virtual void deactivate(std::vector<const std::string &> resource_ids) PURE;
 
   virtual void deactivateSvc(const std::string& service_id) PURE;
+
+protected:
+  virtual void timedCleanUp() PURE;
 };
 
 } // namespace States
