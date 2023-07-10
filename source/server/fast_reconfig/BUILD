@@ -14,6 +14,7 @@ envoy_cc_library(
         ":fast_reconfig_filter_lib",
         "//source/server:server_endpoint_listener_lib",
         "//source/server:server_endpoint_filter_lib",
+        "//source/server:null_overload_manager_lib",
         "//envoy/http:filter_interface",
         "//envoy/network:filter_interface",
         "//envoy/network:listen_socket_interface",

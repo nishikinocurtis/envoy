@@ -554,3 +554,13 @@ envoy_cc_library(
         "//source/common/network:connection_balancer_lib",
     ]
 )
+
+envoy_cc_library(
+    name = "null_overload_manager_lib",
+    hdrs = ["null_overload_manager.h"],
+    deps = [
+        "//envoy/thread_local:thread_local_interface",
+        "//envoy/server/overload:overload_manager_interface",
+        "//source/common/common:assert_lib",
+    ]
+)

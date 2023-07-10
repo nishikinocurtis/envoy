@@ -16,6 +16,7 @@ FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
                                                bool ignore_global_conn_limit,
                                                LdsApiImpl& listener_reconfig_callback)
     : server_(server),
+      null_overload_manager_(server_.threadLocal()),
       fast_reconfig_server_filter_chain_(std::make_shared<FastReconfigFilterChain>()),
       listener_reconfig_handler_instance_(server_, listener_reconfig_callback),
       ignore_global_conn_limit_(ignore_global_conn_limit)
@@ -60,7 +61,11 @@ FastReconfigServer::GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndAppl
 
 bool FastReconfigServerImpl::createNetworkFilterChain(Network::Connection &connection,
                                                       const std::vector<Network::FilterFactoryCb> &filter_factories) {
-  // to be implemented: need NullOverloadManager
+  // adopted from AdminImpl
+  connection.addReadFilter(Network::ReadFilterSharedPtr{new Http::ConnectionManagerImpl(
+      *this, server_.drainManager(), server_.api().randomGenerator(), server_.httpContext(),
+      server_.runtime(), server_.localInfo(), server_.clusterManager(), null_overload_manager_,
+      server_.timeSource())});
   return true;
 }
 

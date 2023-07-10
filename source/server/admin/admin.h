@@ -50,6 +50,7 @@
 #include "source/server/admin/stats_handler.h"
 #include "source/server/server_endpoint_listener.h"
 #include "source/server/server_endpoint_filter.h"
+#include "source/server/null_overload_manager.h"
 
 #include "absl/strings/string_view.h"
 
@@ -287,7 +288,7 @@ private:
    * Implementation of ScopedRouteConfigProvider that returns a null scoped route config.
    */
   struct NullScopedRouteConfigProvider : public Config::ConfigProvider {
-    NullScopedRouteConfigProvider(TimeSource& time_source)
+    NullScopedRouteConfigProvider(TimeSource &time_source)
         : config_(std::make_shared<const Router::NullScopedConfigImpl>()),
           time_source_(time_source) {}
 
@@ -295,54 +296,19 @@ private:
 
     // Config::ConfigProvider
     SystemTime lastUpdated() const override { return time_source_.systemTime(); }
-    const Protobuf::Message* getConfigProto() const override { return nullptr; }
+
+    const Protobuf::Message *getConfigProto() const override { return nullptr; }
+
     std::string getConfigVersion() const override { return ""; }
+
     ConfigConstSharedPtr getConfig() const override { return config_; }
+
     ApiType apiType() const override { return ApiType::Full; }
+
     ConfigProtoVector getConfigProtos() const override { return {}; }
 
     Router::ScopedConfigConstSharedPtr config_;
-    TimeSource& time_source_;
-  };
-
-  /**
-   * Implementation of OverloadManager that is never overloaded. Using this instead of the real
-   * OverloadManager keeps the admin interface accessible even when the proxy is overloaded.
-   */
-  struct NullOverloadManager : public OverloadManager {
-    struct OverloadState : public ThreadLocalOverloadState {
-      OverloadState(Event::Dispatcher& dispatcher) : dispatcher_(dispatcher) {}
-      const OverloadActionState& getState(const std::string&) override { return inactive_; }
-      bool tryAllocateResource(OverloadProactiveResourceName, int64_t) override { return false; }
-      bool tryDeallocateResource(OverloadProactiveResourceName, int64_t) override { return false; }
-      bool isResourceMonitorEnabled(OverloadProactiveResourceName) override { return false; }
-      Event::Dispatcher& dispatcher_;
-      const OverloadActionState inactive_ = OverloadActionState::inactive();
-    };
-
-    NullOverloadManager(ThreadLocal::SlotAllocator& slot_allocator)
-        : tls_(slot_allocator.allocateSlot()) {}
-
-    void start() override {
-      tls_->set([](Event::Dispatcher& dispatcher) -> ThreadLocal::ThreadLocalObjectSharedPtr {
-        return std::make_shared<OverloadState>(dispatcher);
-      });
-    }
-
-    ThreadLocalOverloadState& getThreadLocalOverloadState() override {
-      return tls_->getTyped<OverloadState>();
-    }
-    LoadShedPoint* getLoadShedPoint(absl::string_view) override { return nullptr; }
-
-    Event::ScaledRangeTimerManagerFactory scaledTimerFactory() override { return nullptr; }
-
-    bool registerForAction(const std::string&, Event::Dispatcher&, OverloadActionCb) override {
-      // This method shouldn't be called by the admin listener
-      IS_ENVOY_BUG("Unexpected function call");
-      return false;
-    }
-
-    ThreadLocal::SlotPtr tls_;
+    TimeSource &time_source_;
   };
 
   std::vector<const UrlHandler*> sortedHandlers() const;

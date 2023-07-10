@@ -17,6 +17,7 @@
 #include "source/server/server_endpoint_listener.h"
 #include "source/server/server_endpoint_filter.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
+#include "source/server/null_overload_manager.h"
 
 #include "source/extensions/listener_managers/listener_manager/lds_api.h"
 
@@ -136,6 +137,7 @@ private:
   };
 
   Server::Instance& server_;
+  NullOverloadManager null_overload_manager_;
   const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
   ListenerHandler listener_reconfig_handler_instance_;
   Network::SocketSharedPtr socket_;
