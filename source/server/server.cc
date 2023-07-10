@@ -728,12 +728,20 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                     lds_resources_locator.get());
   }
 
-  // after xDS subscription initialized start our reconfig server to pierce the update into subscription
-  // TODO: add instantiation of FastReconfigServerImpl here to rr_manager_.
+  // after xDS subscription initialized start our reconfig server to pierce the update into subscripti
   if (bootstrap_.dynamic_resources().has_lds_config() ||
       !bootstrap_.dynamic_resources().lds_resources_locator().empty()) {
+    auto lds_api_cb = listener_manager_->getLdsApiHandle();
+    auto lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
+    // TODO: waiting for ConnManager interface implementation to be instantiated.
+    rr_manager_ = std::make_unique<FastReconfigServerImpl>(*this,
+                                                           true,
+                                                           std::move(lds_api_cb),
+                                                           std::move(lds_resource_decoder));
+  }
 
-
+  if (rr_manager_) {
+    // start listening.
   }
 
   // We have to defer RTDS initialization until after the cluster manager is

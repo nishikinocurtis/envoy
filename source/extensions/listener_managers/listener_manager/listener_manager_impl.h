@@ -202,6 +202,9 @@ public:
   std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() override {
     return lds_api_->genSubscriptionCallbackPtr();
   }
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoderFromLdsApi() override {
+    return lds_api_->getResourceDecoderPtr();
+  }
   std::vector<std::reference_wrapper<Network::ListenerConfig>>
   listeners(ListenerState state = ListenerState::ACTIVE) override;
   uint64_t numConnections() const override;

@@ -41,7 +41,14 @@ public:
   /**
    * @return std::shared_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
    */
-   virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() PURE;
+   virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+     return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+   };
+
+
+   virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() {
+     return nullptr; // if it doesn't support, return nullptr.
+   }
 };
 
 // TODO: use a shared_ptr to enable weak_ptr generate from LdsApiPtr.
@@ -192,8 +199,16 @@ public:
   /**
    * Get a weak_ptr of LdsApi as handle, from this listener manager.
    * No param needed.
+   * @return std::weak_ptr<Config::SubscriptionCallbacks> for subscription update callback
    */
    virtual std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() PURE;
+
+   /**
+    * Get a shared_ptr of resource_decoder_ of lds_api_.
+    * No param needed
+    * @return Config::OpaqueResourceDecoderSharedPtr resource_decoder.
+    */
+   virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderFromLdsApi() PURE;
 
   /**
    * @param state the type of listener to be returned (defaults to ACTIVE), states can be OR'd

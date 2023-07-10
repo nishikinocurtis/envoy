@@ -19,6 +19,11 @@
 namespace Envoy {
 namespace Server {
 
+#define HANDLER_WRAPPER(F) \
+  [this](Server::AdminStream& admin_stream, \
+     Http::ResponseHeaderMap& response_headers,               \
+     Buffer::Instance& response) -> Http::Code {              \
+      return F(admin_stream, response_headers, response); }   \
 /**
  * A listening grpc server abstraction for fast update of listener configuration,
  * which bypasses the normal update->control plane->notification path.
@@ -28,6 +33,7 @@ namespace Server {
 
 class FastReconfigServer {
 public:
+    virtual ~FastReconfigServer() = default;
   /*
    * Provide a fake stream manner GrpcMessage for one time
    * Reconfig Processing
