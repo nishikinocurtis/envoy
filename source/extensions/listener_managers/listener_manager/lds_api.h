@@ -35,6 +35,10 @@ public:
   // Server::LdsApi
   std::string versionInfo() const override { return system_version_info_; }
 
+  std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
+    return shared_from_this();
+  }
+
 private:
   friend class ListenerHandler;
   // Config::SubscriptionCallbacks

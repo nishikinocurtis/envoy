@@ -730,6 +730,11 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
 
   // after xDS subscription initialized start our reconfig server to pierce the update into subscription
   // TODO: add instantiation of FastReconfigServerImpl here to rr_manager_.
+  if (bootstrap_.dynamic_resources().has_lds_config() ||
+      !bootstrap_.dynamic_resources().lds_resources_locator().empty()) {
+
+
+  }
 
   // We have to defer RTDS initialization until after the cluster manager is
   // instantiated (which in turn relies on runtime...).

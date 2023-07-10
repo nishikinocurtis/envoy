@@ -13,7 +13,7 @@ public:
   // Server::ListenerComponentFactory
   LdsApiPtr createLdsApi(const envoy::config::core::v3::ConfigSource& lds_config,
                          const xds::core::v3::ResourceLocator* lds_resources_locator) override {
-    return std::make_unique<LdsApiImpl>(
+    return std::make_shared<LdsApiImpl>(
         lds_config, lds_resources_locator, parent_.clusterManager(), parent_.initManager(),
         *parent_.stats().rootScope(), parent_.listenerManager(),
         parent_.messageValidationContext().dynamicValidationVisitor());

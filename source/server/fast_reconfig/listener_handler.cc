@@ -39,11 +39,15 @@ Http::Code ListenerHandler::pushNewListenersHandler(Envoy::Server::AdminStream &
 
     auto added_resources =
       Config::SpecifiedResourcesWrapper<envoy::service::discovery::v3::Resource>
-        (*listener_sub_handle_.getResourceDecoder(), ddr.resources(), ddr.system_version_info());
+        (*resource_decoder_, ddr.resources(), ddr.system_version_info());
 
-    callback_.onConfigUpdate(added_resources.refvec_,
-                             ddr.removed_resources(),
-                             ddr.system_version_info());
+    // check callback liveness
+    if (!callback_.expired()) {
+      callback_.lock()->onConfigUpdate(added_resources.refvec_,
+                                       ddr.removed_resources(),
+                                       ddr.system_version_info());
+    }
+
     // write response headers
     // write response
     return Http::Code::OK;
