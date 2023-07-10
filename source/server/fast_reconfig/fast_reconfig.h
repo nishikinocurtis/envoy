@@ -15,6 +15,7 @@
 #include "source/common/buffer/buffer_impl.h"
 #include "source/server/fast_reconfig/listener_handler.h"
 #include "source/server/server_endpoint_listener.h"
+#include "source/server/server_endpoint_filter.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 
 #include "source/extensions/listener_managers/listener_manager/lds_api.h"
@@ -32,6 +33,7 @@ class FastReconfigServerImpl : public FastReconfigServer,
                                Logger::Loggable<Logger::Id::rr_manager> {
 public:
   FastReconfigServerImpl(Server::Instance& server,
+                         bool ignore_global_conn_limit,
                          LdsApiImpl& listener_reconfig_callback);
 
   class GrpcMessageImpl;
@@ -76,14 +78,33 @@ public:
 
   GrpcRequestProcessorPtr matchAndApplyFactoryOnRequest(AdminStream& admin_stream) const;
 
+  // Network::FilterChainManager
+  const Network::FilterChain* findFilterChain(const Network::ConnectionSocket&,
+                                              const StreamInfo::StreamInfo&) const override {
+    return fast_reconfig_server_filter_chain_.get();
+  }
+
+  // Network::FilterChainFactory
+  bool
+  createNetworkFilterChain(Network::Connection& connection,
+                           const std::vector<Network::FilterFactoryCb>& filter_factories) override;
+  bool createListenerFilterChain(Network::ListenerFilterManager&) override { return true; }
+  void createUdpListenerFilterChain(Network::UdpListenerFilterManager&,
+                                    Network::UdpReadFilterCallbacks&) override {}
+
+  // Http::FilterChainFactory
   bool createFilterChain(Http::FilterChainManager& manager, bool) const override;
+  bool createUpgradeFilterChain(absl::string_view, const Http::FilterChainFactory::UpgradeMap*,
+                                Http::FilterChainManager&) const override {
+    return false;
+  }
 
 private:
   class ReconfigListener : public ServerEndpointListener {
   public:
     ReconfigListener(FastReconfigServerImpl& parent, Stats::ScopeSharedPtr&& listener_scope)
         : ServerEndpointListener(std::move(listener_scope),
-                                 "admin",
+                                 "rr_manager",
                                  parent.ignore_global_conn_limit_),
           parent_(parent)
     {}
@@ -107,12 +128,21 @@ private:
     return HandlerRegistrationItem{ GrpcRequestProcessorImpl::defineProcessorFactory(handler) };
   };
 
+  class FastReconfigFilterChain : public ServerEndpointFilterChain {
+  public:
+    FastReconfigFilterChain() : ServerEndpointFilterChain() {}
+
+    absl::string_view name() const override { return "rr_manager"; }
+  };
+
   Server::Instance& server_;
+  const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
   ListenerHandler listener_reconfig_handler_instance_;
   Network::SocketSharedPtr socket_;
   std::map<std::string, HandlerRegistrationItem> handler_registry_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
   bool ignore_global_conn_limit_;
+
 };
 
 } // namespace Server

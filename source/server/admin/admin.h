@@ -49,6 +49,7 @@
 #include "source/server/admin/server_info_handler.h"
 #include "source/server/admin/stats_handler.h"
 #include "source/server/server_endpoint_listener.h"
+#include "source/server/server_endpoint_filter.h"
 
 #include "absl/strings/string_view.h"
 
@@ -402,30 +403,12 @@ private:
   };
   using AdminListenerPtr = std::unique_ptr<AdminListener>;
 
-  class AdminFilterChain : public Network::FilterChain {
+  // please refer to source/server/server_endpoint_filter.h.
+  class AdminFilterChain : public ServerEndpointFilterChain {
   public:
-    // We can't use the default constructor because transport_socket_factory_ doesn't have a
-    // default constructor.
-    AdminFilterChain() {} // NOLINT(modernize-use-equals-default)
-
-    // Network::FilterChain
-    const Network::DownstreamTransportSocketFactory& transportSocketFactory() const override {
-      return transport_socket_factory_;
-    }
-
-    std::chrono::milliseconds transportSocketConnectTimeout() const override {
-      return std::chrono::milliseconds::zero();
-    }
-
-    const std::vector<Network::FilterFactoryCb>& networkFilterFactories() const override {
-      return empty_network_filter_factory_;
-    }
+    AdminFilterChain() : ServerEndpointFilterChain() {}
 
     absl::string_view name() const override { return "admin"; }
-
-  private:
-    const Network::RawBufferSocketFactory transport_socket_factory_;
-    const std::vector<Network::FilterFactoryCb> empty_network_filter_factory_;
   };
 
   Server::Instance& server_;

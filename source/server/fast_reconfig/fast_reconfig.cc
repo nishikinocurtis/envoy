@@ -13,9 +13,12 @@ using GrpcMessageImpl = FastReconfigServerImpl::GrpcMessageImpl;
 using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImpl;
 
 FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
+                                               bool ignore_global_conn_limit,
                                                LdsApiImpl& listener_reconfig_callback)
     : server_(server),
-      listener_reconfig_handler_instance_(server_, listener_reconfig_callback)
+      fast_reconfig_server_filter_chain_(std::make_shared<FastReconfigFilterChain>()),
+      listener_reconfig_handler_instance_(server_, listener_reconfig_callback),
+      ignore_global_conn_limit_(ignore_global_conn_limit)
                                                {
   handler_registry_["/rr_listener"] =
       registerHandler(listener_reconfig_handler_instance_.pushNewListenersHandler);
@@ -43,16 +46,22 @@ FastReconfigServer::GrpcMessageOverHttpPtr GrpcRequestProcessorImpl::process() {
   return std::move(response_msg_);
 }
 
-GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndApplyFactoryOnRequest(AdminStream &admin_stream) const {
+FastReconfigServer::GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndApplyFactoryOnRequest(AdminStream &admin_stream) const {
   // get request path
   // fetch factory from registry
   // apply factory with admin_stream, and return the processor.
   auto iter = handler_registry_.find("/rr_listener");
   if (iter != handler_registry_.end()) {
-    return iter->processor_factory_(admin_stream);
+    return iter->second.processor_factory_(admin_stream);
   } else {
 
   }
+}
+
+bool FastReconfigServerImpl::createNetworkFilterChain(Network::Connection &connection,
+                                                      const std::vector<Network::FilterFactoryCb> &filter_factories) {
+  // to be implemented: need NullOverloadManager
+  return true;
 }
 
 bool FastReconfigServerImpl::createFilterChain(Http::FilterChainManager &manager, bool) const {

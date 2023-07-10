@@ -2,6 +2,8 @@
 // Created by curtis on 7/5/23.
 //
 
+#pragma once
+
 #include <functional>
 #include <list>
 
@@ -13,6 +15,7 @@
 #include "source/common/common/logger.h"
 #include "source/common/http/codes.h"
 #include "source/common/http/header_map_impl.h"
+#include "source/common/network/raw_buffer_socket.h"
 #include "source/extensions/filters/http/common/pass_through_filter.h"
 
 #include "absl/strings/string_view.h"
@@ -56,6 +59,31 @@ protected:
   bool end_stream_on_complete_ = true;
   Http::RequestHeaderMap* request_headers_{};
   std::list<std::function<void()>> on_destroy_callbacks_;
+};
+
+// adopted from original admin.h:AdminFilterChain
+class ServerEndpointFilterChain : public Network::FilterChain {
+public:
+  // We can't use the default constructor because transport_socket_factory_ doesn't have a
+  // default constructor.
+  ServerEndpointFilterChain() {} // NOLINT(modernize-use-equals-default)
+
+  // Network::FilterChain
+  const Network::DownstreamTransportSocketFactory& transportSocketFactory() const override {
+    return transport_socket_factory_;
+  }
+
+  std::chrono::milliseconds transportSocketConnectTimeout() const override {
+    return std::chrono::milliseconds::zero();
+  }
+
+  const std::vector<Network::FilterFactoryCb>& networkFilterFactories() const override {
+    return empty_network_filter_factory_;
+  }
+
+protected:
+  const Network::RawBufferSocketFactory transport_socket_factory_;
+  const std::vector<Network::FilterFactoryCb> empty_network_filter_factory_;
 };
 
 }
