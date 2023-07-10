@@ -13,6 +13,8 @@ class RawBufferStateObject : public StateObject {
 class StorageImpl : public Storage {
 public:
 
+  void timedCleanUp() override;
+
 private:
   std::unordered_map<std::string, std::unique_ptr<StateObject>> states_repo_;
 };
