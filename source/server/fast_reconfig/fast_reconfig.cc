@@ -94,5 +94,11 @@ bool FastReconfigServerImpl::createFilterChain(Http::FilterChainManager &manager
   return true;
 }
 
+void FastReconfigServerImpl::registerListenerToConnectionHandler(Network::ConnectionHandler* conn_handler) {
+  if (listener_) {
+    conn_handler->addListener(absl::nullopt, *listener_, server_.runtime());
+  }
+}
+
 }
 }

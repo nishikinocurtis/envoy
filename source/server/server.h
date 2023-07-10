@@ -18,6 +18,7 @@
 #include "envoy/server/process_context.h"
 #include "envoy/server/tracer_config.h"
 #include "envoy/server/transport_socket_config.h"
+#include "envoy/server/fast_reconfig.h"
 #include "envoy/ssl/context_manager.h"
 #include "envoy/stats/stats_macros.h"
 #include "envoy/stats/timespan.h"
@@ -363,6 +364,7 @@ private:
   Event::DispatcherPtr dispatcher_;
   AccessLog::AccessLogManagerImpl access_log_manager_;
   std::unique_ptr<Admin> admin_;
+  std::unique_ptr<FastReconfigServer> rr_manager_;
   Singleton::ManagerPtr singleton_manager_;
   Network::ConnectionHandlerPtr handler_;
   std::unique_ptr<Runtime::ScopedLoaderSingleton> runtime_singleton_;

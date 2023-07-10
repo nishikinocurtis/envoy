@@ -38,7 +38,8 @@ public:
                          bool ignore_global_conn_limit,
                          LdsApiImpl& listener_reconfig_callback);
 
-  const Network::Socket& socket() { return *socket_; }
+  const Network::Socket& socket() override { return *socket_; }
+  void registerListenerToConnectionHandler(Network::ConnectionHandler* conn_handler) override;
 
   class GrpcMessageImpl;
 

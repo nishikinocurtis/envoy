@@ -60,6 +60,7 @@
 #include "source/server/regex_engine.h"
 #include "source/server/ssl_context_manager.h"
 #include "source/server/utils.h"
+#include "source/server/fast_reconfig/fast_reconfig.h"
 
 namespace Envoy {
 namespace Server {
@@ -726,6 +727,9 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
     listener_manager_->createLdsApi(bootstrap_.dynamic_resources().lds_config(),
                                     lds_resources_locator.get());
   }
+
+  // after xDS subscription initialized start our reconfig server to pierce the update into subscription
+  // TODO: add instantiation of FastReconfigServerImpl here to rr_manager_.
 
   // We have to defer RTDS initialization until after the cluster manager is
   // instantiated (which in turn relies on runtime...).

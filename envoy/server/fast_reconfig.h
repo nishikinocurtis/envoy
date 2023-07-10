@@ -12,6 +12,7 @@
 #include "envoy/grpc/context.h"
 #include "envoy/config/subscription.h"
 #include "envoy/server/admin.h"
+#include "envoy/network/connection_handler.h"
 
 #include "absl/strings/string_view.h"
 
@@ -59,6 +60,9 @@ public:
                                Buffer::Instance& response)>;
 
   using GrpcRequestProcessorPtr = std::unique_ptr<GrpcRequestProcessor>;
+
+  virtual const Network::Socket& socket() PURE;
+  virtual void registerListenerToConnectionHandler(Network::ConnectionHandler* conn_handler) PURE;
 };
 
 
