@@ -41,7 +41,7 @@ public:
   /**
    * @return std::shared_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
    */
-   virtual std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() PURE;
+   virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() PURE;
 };
 
 // TODO: use a shared_ptr to enable weak_ptr generate from LdsApiPtr.
