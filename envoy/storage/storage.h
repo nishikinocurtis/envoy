@@ -11,6 +11,10 @@
 namespace Envoy {
 namespace States {
 
+class StorageMetadata {
+  // service, pod, module, session, version
+};
+
 class Storage {
 
 };
