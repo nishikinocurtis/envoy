@@ -15,6 +15,7 @@
 #include "source/common/buffer/buffer_impl.h"
 #include "source/server/fast_reconfig/listener_handler.h"
 #include "source/server/server_endpoint_listener.h"
+#include "source/server/fast_reconfig/fast_reconfig_filter.h"
 
 #include "source/extensions/listener_managers/listener_manager/lds_api.h"
 
@@ -35,11 +36,20 @@ public:
 
   class GrpcMessageImpl;
 
+  using GenRequestFn = std::function<GrpcRequestProcessorPtr(AdminStream&)>;
+
   class GrpcRequestProcessorImpl : public GrpcRequestProcessor {
   public:
+
     GrpcRequestProcessorImpl(HandlerCb handler_callback, AdminStream& admin_stream);
 
     GrpcMessageOverHttpPtr process() override;
+
+    static GenRequestFn defineProcessorFactory(HandlerCb callback) {
+      return [callback](AdminStream& stream) -> std::unique_ptr<GrpcRequestProcessor> {
+        return std::make_unique<GrpcRequestProcessorImpl>(callback, stream);
+      };
+    }
 
   private:
     HandlerCb handler_cb_;
@@ -64,6 +74,10 @@ public:
     Http::Code code_ = Http::Code::OK;
   };
 
+  GrpcRequestProcessorPtr matchAndApplyFactoryOnRequest(AdminStream& admin_stream) const;
+
+  bool createFilterChain(Http::FilterChainManager& manager, bool) const override;
+
 private:
   class ReconfigListener : public ServerEndpointListener {
   public:
@@ -83,11 +97,20 @@ private:
 
     FastReconfigServerImpl& parent_;
   };
-  using AdminListenerPtr = std::unique_ptr<ReconfigListener>;
+  using ReconfigListenerPtr = std::unique_ptr<ReconfigListener>;
+
+  struct HandlerRegistrationItem {
+    GenRequestFn processor_factory_;
+  };
+
+  static HandlerRegistrationItem registerHandler(HandlerCb handler) {
+    return HandlerRegistrationItem{ GrpcRequestProcessorImpl::defineProcessorFactory(handler) };
+  };
 
   Server::Instance& server_;
   ListenerHandler listener_reconfig_handler_instance_;
   Network::SocketSharedPtr socket_;
+  std::map<std::string, HandlerRegistrationItem> handler_registry_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
   bool ignore_global_conn_limit_;
 };

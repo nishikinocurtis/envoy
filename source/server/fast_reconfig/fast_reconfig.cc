@@ -17,7 +17,8 @@ FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
     : server_(server),
       listener_reconfig_handler_instance_(server_, listener_reconfig_callback)
                                                {
-
+  handler_registry_["/rr_listener"] =
+      registerHandler(listener_reconfig_handler_instance_.pushNewListenersHandler);
 }
 
 GrpcMessageImpl::GrpcMessageImpl() {
@@ -42,6 +43,27 @@ FastReconfigServer::GrpcMessageOverHttpPtr GrpcRequestProcessorImpl::process() {
   return std::move(response_msg_);
 }
 
+GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndApplyFactoryOnRequest(AdminStream &admin_stream) const {
+  // get request path
+  // fetch factory from registry
+  // apply factory with admin_stream, and return the processor.
+  auto iter = handler_registry_.find("/rr_listener");
+  if (iter != handler_registry_.end()) {
+    return iter->processor_factory_(admin_stream);
+  } else {
+
+  }
 }
 
+bool FastReconfigServerImpl::createFilterChain(Http::FilterChainManager &manager, bool) const {
+  Http::FilterFactoryCb factory = [this](Http::FilterChainFactoryCallbacks& callbacks) {
+    callbacks.addStreamFilter(std::make_shared<FastReconfigFilter>(
+        [this](AdminStream& admin_stream) { return matchAndApplyFactoryOnRequest(admin_stream); }
+        ));
+  };
+  manager.applyFilterFactoryCb({}, factory);
+  return true;
+}
+
+}
 }
