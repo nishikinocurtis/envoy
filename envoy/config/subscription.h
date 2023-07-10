@@ -94,7 +94,7 @@ using OpaqueResourceDecoderSharedPtr = std::shared_ptr<OpaqueResourceDecoder>;
 /**
  * Subscription to DecodedResources.
  */
-class SubscriptionCallbacks {
+class SubscriptionCallbacks : public std::enable_shared_from_this<SubscriptionCallbacks> {
 public:
   virtual ~SubscriptionCallbacks() = default;
 

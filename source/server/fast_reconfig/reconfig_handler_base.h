@@ -11,14 +11,16 @@
 namespace Envoy {
 namespace Server {
 
+using SubscriptionCallbackWeakPtr = std::weak_ptr<Config::SubscriptionCallbacks>;
+
 class ReconfigHandlerBase {
 public:
-    ReconfigHandlerBase(Server::Instance& server, Config::SubscriptionCallbacks& callbacks)
+    ReconfigHandlerBase(Server::Instance& server, SubscriptionCallbackWeakPtr&& callbacks)
         : server_(server), callback_(callbacks) {};
 
 protected:
     Server::Instance& server_;
-    Config::SubscriptionCallbacks& callback_;
+    SubscriptionCallbackWeakPtr callback_;
 };
 
 }

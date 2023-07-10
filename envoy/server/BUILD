@@ -261,6 +261,7 @@ envoy_cc_library(
         ":drain_manager_interface",
         ":filter_config_interface",
         ":guarddog_interface",
+        "//envoy/config:subscription_interface",
         "//envoy/filter:config_provider_manager_interface",
         "//envoy/network:filter_interface",
         "//envoy/network:listen_socket_interface",

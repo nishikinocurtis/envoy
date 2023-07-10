@@ -15,21 +15,27 @@
 namespace Envoy {
 namespace Server {
 
-using LdsApiImplPtr = std::shared_ptr<LdsApiImpl>;
+using LdsApiImplPtr = std::weak_ptr<LdsApiImpl>;
+
+// we need something that is a SubscriptionCallback and can get resource_decoder from.
 
 class ListenerHandler : public ReconfigHandlerBase,
                         Logger::Loggable<Logger::Id::rr_manager> {
 public:
+    // TODO: consider using a weak_ptr
     ListenerHandler(Server::Instance& server,
-                    LdsApiImpl& lds_handle
+                    SubscriptionCallbackWeakPtr&& lds_handle,
+                    Config::OpaqueResourceDecoderSharedPtr&& lds_resource_decoder
+                    // Config::OpaqueResourceDecoderSharedPtr&& resource_decoder
                     )
-        : ReconfigHandlerBase(server, lds_handle), listener_sub_handle_(lds_handle) {};
+        : ReconfigHandlerBase(server, std::move(lds_handle)), resource_decoder_(std::move(lds_resource_decoder)) {};
 
     Http::Code pushNewListenersHandler(AdminStream& admin_stream,
                                        Http::ResponseHeaderMap& response_headers,
                                        Buffer::Instance& response);
 private:
-  const LdsApiImpl& listener_sub_handle_;
+  // const LdsApiImpl& listener_sub_handle_;
+  Config::OpaqueResourceDecoderSharedPtr resource_decoder_;
 };
 
 }

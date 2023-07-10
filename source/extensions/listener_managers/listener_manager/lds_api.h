@@ -20,6 +20,7 @@
 namespace Envoy {
 namespace Server {
 
+
 /**
  * LDS API implementation that fetches via Subscription.
  */
@@ -34,6 +35,14 @@ public:
 
   // Server::LdsApi
   std::string versionInfo() const override { return system_version_info_; }
+
+  std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
+    return shared_from_this(); // implicitly downgraded, defined at interface level to avoid exposing lifecycle control.
+  }
+
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() override {
+    return resource_decoder_;
+  }
 
 private:
   friend class ListenerHandler;

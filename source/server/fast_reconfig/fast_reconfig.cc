@@ -29,15 +29,18 @@ using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImp
 
 FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
                                                bool ignore_global_conn_limit,
-                                               LdsApiImpl& listener_reconfig_callback)
+                                               SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
+                                               Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder)
     : server_(server),
       null_overload_manager_(server_.threadLocal()),
       fast_reconfig_server_filter_chain_(std::make_shared<FastReconfigFilterChain>()),
-      listener_reconfig_handler_instance_(server_, listener_reconfig_callback),
+      listener_reconfig_handler_instance_(server_,
+                                          std::move(listener_reconfig_callback),
+                                          std::move(listener_reconfig_resource_decoder)),
       ignore_global_conn_limit_(ignore_global_conn_limit)
                                                {
   handler_registry_["/rr_listener"] =
-      registerHandler(listener_reconfig_handler_instance_.pushNewListenersHandler);
+      registerHandler(HANDLER_WRAPPER(listener_reconfig_handler_instance_.pushNewListenersHandler));
 }
 
 GrpcMessageImpl::GrpcMessageImpl() {

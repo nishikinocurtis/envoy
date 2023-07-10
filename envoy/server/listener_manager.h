@@ -4,6 +4,7 @@
 
 #include "envoy/admin/v3/config_dump.pb.h"
 #include "envoy/config/core/v3/config_source.pb.h"
+#include "envoy/config/subscription.h"
 #include "envoy/config/listener/v3/listener.pb.h"
 #include "envoy/config/listener/v3/listener_components.pb.h"
 #include "envoy/filter/config_provider_manager.h"
@@ -36,9 +37,22 @@ public:
    * @return std::string the last received version by the xDS API for LDS.
    */
   virtual std::string versionInfo() const PURE;
+
+  /**
+   * @return std::shared_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
+   */
+   virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+     return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+   };
+
+
+   virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() {
+     return nullptr; // if it doesn't support, return nullptr.
+   }
 };
 
-using LdsApiPtr = std::unique_ptr<LdsApi>;
+// TODO: use a shared_ptr to enable weak_ptr generate from LdsApiPtr.
+using LdsApiPtr = std::shared_ptr<LdsApi>;
 
 /**
  * Factory for creating listener components.
@@ -181,6 +195,20 @@ public:
    */
   virtual void createLdsApi(const envoy::config::core::v3::ConfigSource& lds_config,
                             const xds::core::v3::ResourceLocator* lds_resources_locator) PURE;
+
+  /**
+   * Get a weak_ptr of LdsApi as handle, from this listener manager.
+   * No param needed.
+   * @return std::weak_ptr<Config::SubscriptionCallbacks> for subscription update callback
+   */
+   virtual std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() PURE;
+
+   /**
+    * Get a shared_ptr of resource_decoder_ of lds_api_.
+    * No param needed
+    * @return Config::OpaqueResourceDecoderSharedPtr resource_decoder.
+    */
+   virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderFromLdsApi() PURE;
 
   /**
    * @param state the type of listener to be returned (defaults to ACTIVE), states can be OR'd

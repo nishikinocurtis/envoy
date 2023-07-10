@@ -73,7 +73,7 @@ public:
   // Server::ListenerComponentFactory
   LdsApiPtr createLdsApi(const envoy::config::core::v3::ConfigSource& lds_config,
                          const xds::core::v3::ResourceLocator* lds_resources_locator) override {
-    return std::make_unique<LdsApiImpl>(
+    return std::make_shared<LdsApiImpl>(
         lds_config, lds_resources_locator, server_.clusterManager(), server_.initManager(),
         *server_.stats().rootScope(), server_.listenerManager(),
         server_.messageValidationContext().dynamicValidationVisitor());
@@ -198,6 +198,12 @@ public:
                     const xds::core::v3::ResourceLocator* lds_resources_locator) override {
     ASSERT(lds_api_ == nullptr);
     lds_api_ = factory_->createLdsApi(lds_config, lds_resources_locator);
+  }
+  std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() override {
+    return lds_api_->genSubscriptionCallbackPtr();
+  }
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoderFromLdsApi() override {
+    return lds_api_->getResourceDecoderPtr();
   }
   std::vector<std::reference_wrapper<Network::ListenerConfig>>
   listeners(ListenerState state = ListenerState::ACTIVE) override;

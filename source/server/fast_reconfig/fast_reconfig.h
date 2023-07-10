@@ -36,7 +36,8 @@ class FastReconfigServerImpl : public FastReconfigServer,
 public:
   FastReconfigServerImpl(Server::Instance& server,
                          bool ignore_global_conn_limit,
-                         LdsApiImpl& listener_reconfig_callback);
+                         SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
+                         Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder);
 
   const Network::Socket& socket() override { return *socket_; }
   void registerListenerToConnectionHandler(Network::ConnectionHandler* conn_handler) override;
