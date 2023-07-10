@@ -18,6 +18,7 @@
 #include "source/server/server_endpoint_filter.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 #include "source/server/null_overload_manager.h"
+#include "source/server/server_endpoint_socket_factory.h"
 
 #include "source/extensions/listener_managers/listener_manager/lds_api.h"
 
@@ -36,6 +37,8 @@ public:
   FastReconfigServerImpl(Server::Instance& server,
                          bool ignore_global_conn_limit,
                          LdsApiImpl& listener_reconfig_callback);
+
+  const Network::Socket& socket() { return *socket_; }
 
   class GrpcMessageImpl;
 
@@ -100,7 +103,13 @@ public:
     return false;
   }
 
+  void bindHTTPListeningSocket(Network::Address::InstanceConstSharedPtr address,
+                               const Network::Socket::OptionsSharedPtr& socket_options,
+                               Stats::ScopeSharedPtr&& listener_scope);
+
 private:
+
+
   class ReconfigListener : public ServerEndpointListener {
   public:
     ReconfigListener(FastReconfigServerImpl& parent, Stats::ScopeSharedPtr&& listener_scope)
@@ -143,6 +152,7 @@ private:
   Network::SocketSharedPtr socket_;
   std::map<std::string, HandlerRegistrationItem> handler_registry_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
+  std::unique_ptr<ReconfigListener> listener_;
   bool ignore_global_conn_limit_;
 
 };

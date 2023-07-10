@@ -15,6 +15,8 @@ envoy_cc_library(
         "//source/server:server_endpoint_listener_lib",
         "//source/server:server_endpoint_filter_lib",
         "//source/server:null_overload_manager_lib",
+        "//source/server:server_endpoint_socket_lib",
+        "//source/common/network:listen_socket_lib",
         "//envoy/http:filter_interface",
         "//envoy/network:filter_interface",
         "//envoy/network:listen_socket_interface",

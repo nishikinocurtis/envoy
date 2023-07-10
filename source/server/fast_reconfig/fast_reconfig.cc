@@ -5,9 +5,24 @@
 
 
 #include "fast_reconfig.h"
+#include "source/common/network/listen_socket_impl.h"
 
 namespace Envoy {
 namespace Server {
+
+void FastReconfigServerImpl::bindHTTPListeningSocket(Network::Address::InstanceConstSharedPtr address,
+                                                     const Network::Socket::OptionsSharedPtr &socket_options,
+                                                     Stats::ScopeSharedPtr &&listener_scope) {
+  null_overload_manager_.start();
+  socket_ = std::make_shared<Network::TcpListenSocket>(address, socket_options, true);
+  RELEASE_ASSERT(0 == socket_->ioHandle().listen(ENVOY_TCP_BACKLOG_SIZE).return_value_,
+                 "listen() failed on re-config listener");
+  socket_factories_.emplace_back(std::make_unique<ServerEndpointListenSocketFactory>(socket_));
+  listener_ = std::make_unique<ReconfigListener>(*this, std::move(listener_scope));
+  ENVOY_LOG(info, "admin address: {}",
+            socket().connectionInfoProvider().localAddress()->asString());
+  // dump logs..
+}
 
 using GrpcMessageImpl = FastReconfigServerImpl::GrpcMessageImpl;
 using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImpl;

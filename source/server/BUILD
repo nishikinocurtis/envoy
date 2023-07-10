@@ -564,3 +564,13 @@ envoy_cc_library(
         "//source/common/common:assert_lib",
     ]
 )
+
+envoy_cc_library(
+    name = "server_endpoint_socket_lib",
+    hdrs = ["server_endpoint_socket_factory.h"],
+    deps = [
+        "//envoy/network:listener_interface",
+        "//envoy/network:listen_socket_interface",
+        "//source/common/common:assert_lib",
+    ]
+)

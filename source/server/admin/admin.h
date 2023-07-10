@@ -51,6 +51,7 @@
 #include "source/server/server_endpoint_listener.h"
 #include "source/server/server_endpoint_filter.h"
 #include "source/server/null_overload_manager.h"
+#include "source/server/server_endpoint_socket_factory.h"
 
 #include "absl/strings/string_view.h"
 
@@ -324,29 +325,7 @@ private:
                          AdminStream&);
   void getHelp(Buffer::Instance& response) const;
 
-  class AdminListenSocketFactory : public Network::ListenSocketFactory {
-  public:
-    AdminListenSocketFactory(Network::SocketSharedPtr socket) : socket_(socket) {}
 
-    // Network::ListenSocketFactory
-    Network::Socket::Type socketType() const override { return socket_->socketType(); }
-    const Network::Address::InstanceConstSharedPtr& localAddress() const override {
-      return socket_->connectionInfoProvider().localAddress();
-    }
-    Network::SocketSharedPtr getListenSocket(uint32_t) override {
-      // This is only supposed to be called once.
-      RELEASE_ASSERT(!socket_create_, "AdminListener's socket shouldn't be shared.");
-      socket_create_ = true;
-      return socket_;
-    }
-    Network::ListenSocketFactoryPtr clone() const override { return nullptr; }
-    void closeAllSockets() override {}
-    void doFinalPreWorkerInit() override {}
-
-  private:
-    Network::SocketSharedPtr socket_;
-    bool socket_create_{false};
-  };
 
   class AdminListener : public ServerEndpointListener {
   public:
