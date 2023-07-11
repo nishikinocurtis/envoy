@@ -8,15 +8,23 @@ namespace Envoy {
 namespace States {
 
 class RawBufferStateObject : public StateObject {
+public:
+  RawBufferStateObject(StorageMetadata& metadata);
+  RawBufferStateObject(StorageMetadata& metadata, Buffer::Instance& data);
+
+  void writeObject(Buffer::Instance& obj) override;
 };
 
 class StorageImpl : public Storage {
 public:
 
-  void timedCleanUp() override;
+  void write(StateObject& obj) override;
+
+
 
 private:
-  std::unordered_map<std::string, std::unique_ptr<StateObject>> states_repo_;
+  std::unordered_map<std::string, std::unique_ptr<StateObject>> states_;
+  //
 };
 
 } // namespace States

@@ -74,8 +74,15 @@ public:
    * Deliver the stateObject in raw bytes manner to pre-described recover port and uri.
    * Fired by FailoverManager.onFailureSignal().
    * @param resource_id locator for the stateObject to be recovered.
+   * @param target the backup node to contact and deliver SObj to.
    * @return should return some socket info from the application as response.
    */
+   // why target is specified only when recovering?
+   // It is maintained by FailOver manager periodically so changes more frequently
+   // than a real resource, and is effective for all resources under some certain svc.pod.
+   // So iterate and modify the backup target every time is less efficient
+   // Why don't do this for ttl? recovery port / uri?
+   // Recovery port/uri can be negotiated more ahead of time.
   virtual void recover(const std::string& resource_id) PURE;
 
   // Not supporting packed transmission, just for calling convenience.

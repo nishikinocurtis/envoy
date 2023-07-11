@@ -25,7 +25,7 @@ public:
   // about granularity: per service or per node or per connection?
 
   virtual void onLocalFailure() PURE;
-  // signal backup node, with prioritized nodes list
+  // signal backup node (pre-selected periodically), with prioritized nodes list
 
   virtual void onFailureSignal() PURE;
   // fire Storage.recovery() and block,
