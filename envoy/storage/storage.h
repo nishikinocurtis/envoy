@@ -12,12 +12,17 @@
 namespace Envoy {
 namespace States {
 
+enum StorageMetaDataFlags : uint16_t {
+  TYPED = 1
+};
+
 class StorageMetadata {
   // service, pod, module, session, version
   // ttl
   // recover handshake port, uri.
 public:
-  uint32_t recover_port_, ttl_;
+  uint16_t recover_port_, flags;
+  uint32_t ttl_;
   std::string recover_uri_, resource_id_, svc_id_, pod_id_, method_name_;
   // need design choice: how to implement incremental (delta) storage?
 };
