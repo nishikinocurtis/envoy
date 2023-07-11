@@ -29,9 +29,14 @@ public:
 
 class StateObject {
 public:
-  StorageMetadata metadata_;
+  virtual const StorageMetadata& metadata() const {
+    return metadata_;
+  }
 
   virtual void writeObject(Buffer::Instance& obj) PURE;
+
+protected:
+  StorageMetadata metadata_;
 };
 
 /**
@@ -40,9 +45,23 @@ public:
 
 class Storage {
 public:
-  virtual void write(StorageMetadata& metadata, StateObject& obj //, some bytes array, or object
+  /**
+   * create or update a StateObject.
+   * Fired by StateReplicationFilter on outgoing request,
+   * or by ReplicateHandler on incoming endpoint request,
+   * or by StateReplicationFilter on incoming request? (TBD by config).
+   * @param obj the Object to write, uniquely identified by a resource_id, can be referenced
+   * through service_id, pod_id, etc. need to register the obj in different map, register
+   * cleanup event with ttl (or default ttl) timeout.
+   */
+  virtual void write(StateObject& obj //, some bytes array, or object
   ) PURE;
 
+  /**
+   * replicate the StateObject identified by the resource_id to other sidecars.
+   * The range is specified other ways.
+   * @param resource_id locator for the stateObject to be replicated.
+   */
   virtual void replicate(const std::string& resource_id) PURE;
 
   // Not supporting packed transmission, just for calling convenience.
@@ -51,6 +70,12 @@ public:
   // TODO: consider if we can pack up this.
   virtual void replicateSvc(const std::string& service_id) PURE;
 
+  /**
+   * Deliver the stateObject in raw bytes manner to pre-described recover port and uri.
+   * Fired by FailoverManager.onFailureSignal().
+   * @param resource_id locator for the stateObject to be recovered.
+   * @return should return some socket info from the application as response.
+   */
   virtual void recover(const std::string& resource_id) PURE;
 
   // Not supporting packed transmission, just for calling convenience.
@@ -59,6 +84,11 @@ public:
   // TODO: consider if we can pack up this.
   virtual void recoverSvc(const std::string& service_id) PURE;
 
+  /**
+   * on session destroy, graceful shutdown, clean up the state and release the memory
+   * maybe broadcast to other nodes also.
+   * @param resource_id locator for the StateObject to be removed.
+   */
   virtual void deactivate(const std::string& resource_id) PURE;
 
   virtual void deactivate(std::vector<const std::string &> resource_ids) PURE;

@@ -42,11 +42,32 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
+    name = "reconfig_handler_base_lib",
+    hdrs = ["reconfig_handler_base.h"],
+    deps = [
+        "//envoy/server:instance_interface",
+        "//envoy/server:fast_reconfig_interface",
+        "//envoy/config:subscription_interface",
+    ]
+)
+
+envoy_cc_library(
     name = "listener_reconfig_lib",
     srcs = ["listener_handler.cc"],
     hdrs = ["listener_handler.h"],
     deps = [
+        ":reconfig_handler_base_lib",
         "//source/common/protobuf:protobuf",
         "//source/extensions/listener_managers/listener_manager:lds_api_lib",
+    ]
+)
+
+envoy_cc_library(
+    name = "recover_handler_lib",
+    srcs = ["recover_handler.cc"],
+    hdrs = ["recover_handler.h"],
+    deps = [
+        "//envoy/storage:storage_interface",
+        "//source/common/storage:storage_lib",
     ]
 )

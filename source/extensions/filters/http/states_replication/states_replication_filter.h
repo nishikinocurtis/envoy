@@ -12,7 +12,7 @@ namespace HttpFilters {
 namespace States {
 
 class StatesReplicationFilter : public Http::PassThroughDecoderFilter {
-  
+
 };
 
 }
