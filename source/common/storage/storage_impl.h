@@ -9,10 +9,13 @@ namespace States {
 
 class RawBufferStateObject : public StateObject {
 public:
-  RawBufferStateObject(StorageMetadata& metadata);
+  explicit RawBufferStateObject(StorageMetadata& metadata);
   RawBufferStateObject(StorageMetadata& metadata, Buffer::Instance& data);
 
   void writeObject(Buffer::Instance& obj) override;
+  Buffer::Instance& getObject() override;
+  void move(StateObject& rhs) override;
+
 private:
   std::unique_ptr<Buffer::Instance> buf_;
 };
@@ -20,7 +23,7 @@ private:
 class StorageImpl : public Storage {
 public:
 
-  void write(std::unique_ptr<StateObject> obj) override;
+  void write(std::unique_ptr<StateObject>&& obj) override;
 
 
 

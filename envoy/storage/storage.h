@@ -35,6 +35,10 @@ public:
 
   virtual void writeObject(Buffer::Instance& obj) PURE;
 
+  virtual Buffer::Instance& getObject() PURE;
+
+  virtual void move(StateObject& rhs) PURE;
+
 protected:
   StorageMetadata metadata_;
 };
@@ -54,7 +58,7 @@ public:
    * through service_id, pod_id, etc. need to register the obj in different map, register
    * cleanup event with ttl (or default ttl) timeout.
    */
-  virtual void write(std::unique_ptr<StateObject> obj //, some bytes array, or object
+  virtual void write(std::unique_ptr<StateObject>&& obj //, some bytes array, or object
   ) PURE;
 
   /**
