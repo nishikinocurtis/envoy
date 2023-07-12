@@ -13,12 +13,14 @@ public:
   RawBufferStateObject(StorageMetadata& metadata, Buffer::Instance& data);
 
   void writeObject(Buffer::Instance& obj) override;
+private:
+  std::unique_ptr<Buffer::Instance> buf_;
 };
 
 class StorageImpl : public Storage {
 public:
 
-  void write(StateObject& obj) override;
+  void write(std::unique_ptr<StateObject> obj) override;
 
 
 

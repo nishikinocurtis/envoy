@@ -54,7 +54,7 @@ public:
    * through service_id, pod_id, etc. need to register the obj in different map, register
    * cleanup event with ttl (or default ttl) timeout.
    */
-  virtual void write(StateObject& obj //, some bytes array, or object
+  virtual void write(std::unique_ptr<StateObject> obj //, some bytes array, or object
   ) PURE;
 
   /**
