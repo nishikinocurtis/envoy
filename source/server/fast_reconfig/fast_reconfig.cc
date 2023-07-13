@@ -94,5 +94,21 @@ bool FastReconfigServerImpl::createFilterChain(Http::FilterChainManager &manager
   return true;
 }
 
+Http::ServerConnectionPtr FastReconfigServerImpl::createCodec(Network::Connection& connection,
+                                                 const Buffer::Instance& data,
+                                                 Http::ServerConnectionCallbacks& callbacks) {
+  return Http::ConnectionManagerUtility::autoCreateCodec(
+      connection, data, callbacks, *server_.stats().rootScope(), server_.api().randomGenerator(),
+      http1_codec_stats_, http2_codec_stats_, Http::Http1Settings(),
+      ::Envoy::Http2::Utility::initializeAndValidateOptions(
+          envoy::config::core::v3::Http2ProtocolOptions()),
+      maxRequestHeadersKb(), maxRequestHeadersCount(), headersWithUnderscoresAction());
+}
+
+const Network::Address::Instance& FastReconfigServerImpl::localAddress() {
+  return *server_.localInfo().address();
+}
+
+
 }
 }
