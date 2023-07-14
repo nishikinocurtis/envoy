@@ -3,6 +3,8 @@
 //
 
 #include "envoy/storage/storage.h"
+#include "envoy/upstream/cluster_manager.h"
+#include "envoy/http/async_client.h"
 
 namespace Envoy {
 namespace States {
@@ -23,12 +25,21 @@ private:
 class StorageImpl : public Storage {
 public:
 
-  void write(std::unique_ptr<StateObject>&& obj) override;
+  void write(std::shared_ptr<StateObject>&& obj) override;
 
-
+  void replicate(const std::string& resource_id) override;
+  // need to take in some filter object, which hold a cluster manager.
 
 private:
-  std::unordered_map<std::string, std::unique_ptr<StateObject>> states_;
+
+  // consider how to make it parallel without blocking.
+  int makeHttpCall(const Http::AsyncClient::RequestOptions& options,
+                   Http::AsyncClient::Callbacks& callbacks);
+
+  using WeakReferenceStateMap = std::unordered_map<std::string, std::weak_ptr<StateObject>>;
+
+  std::unordered_map<std::string, std::shared_ptr<StateObject>> states_;
+  WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_name
   //
 };
 
