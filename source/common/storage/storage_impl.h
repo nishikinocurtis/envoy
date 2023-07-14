@@ -33,7 +33,9 @@ public:
 private:
 
   // consider how to make it parallel without blocking.
-  int makeHttpCall(const Http::AsyncClient::RequestOptions& options,
+  // need a cluster manager, but cluster implies auto load-balancing
+  // use endpoin
+  int makeHttpCall(Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
                    Http::AsyncClient::Callbacks& callbacks);
 
   using WeakReferenceStateMap = std::unordered_map<std::string, std::weak_ptr<StateObject>>;
