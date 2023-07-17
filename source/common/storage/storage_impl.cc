@@ -65,7 +65,7 @@ void StorageImpl::replicate(const std::string &resource_id) {
   // makeHttpCall
 }
 
-int StorageImpl::makeHttpCall(Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
+int StorageImpl::makeHttpCall(const std::string& target, Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
                   Http::AsyncClient::Callbacks& callbacks) {
   return 0;
 }

@@ -151,6 +151,8 @@ public:
   virtual Tcp::AsyncTcpClientPtr
   tcpAsyncClient(LoadBalancerContext* context,
                  Tcp::AsyncTcpClientOptionsConstSharedPtr options) PURE;
+
+
 };
 
 using ThreadLocalClusterOptRef = absl::optional<std::reference_wrapper<ThreadLocalCluster>>;

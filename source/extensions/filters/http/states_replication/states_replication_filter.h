@@ -12,6 +12,13 @@ namespace HttpFilters {
 namespace States {
 
 class StatesReplicationFilter : public Http::PassThroughDecoderFilter {
+  // record content-length and replication-length at decodeHeader
+
+  // need to truncate the body
+
+  // moveOut the buffer and move into Storage
+
+  // call Storage Replicate and continue
 
 };
 
