@@ -61,5 +61,24 @@ private:
   // maintain a quorom counter per version
 };
 
+class StorageSingleton {
+public:
+  StorageSingleton(const StorageSingleton&) = delete;
+  StorageSingleton& operator=(const StorageSingleton) = delete;
+
+  static std::shared_ptr<Storage> getOrCreateInstance(
+      // with necessary arguments
+      ) {
+    if (ptr_ == nullptr) {
+      ptr_ = new StorageImpl(); //arguments
+    } else {
+      return ptr_;
+    }
+  }
+private:
+  static std::shared_ptr<Storage> ptr_;
+  StorageSingleton() = default;
+};
+
 } // namespace States
 } // namespace Envoy
