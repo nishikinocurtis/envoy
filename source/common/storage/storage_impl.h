@@ -49,6 +49,7 @@ private:
 
   // need a optionGenerator
   // for AsyncClient.send() usage.
+  void populateRequestOption();
 
   // need target cluster names
   // subscription from xDS?

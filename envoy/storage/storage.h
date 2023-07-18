@@ -1,9 +1,11 @@
 //
 // Created by qiutong on 7/10/23.
 //
+#pragma once
 
 #include <string>
 
+#include "envoy/config/subscription.h"
 #include "envoy/common/pure.h"
 #include "envoy/buffer/buffer.h"
 
@@ -42,6 +44,32 @@ public:
 protected:
   StorageMetadata metadata_;
 };
+
+class RpdsApi {
+public:
+  virtual ~RpdsApi() = default;
+
+  /**
+   * @return std::string latest version received from RpDS
+   */
+   virtual std::string versionInfo() const PURE;
+
+  /**
+  * @return std::weak_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
+  */
+  virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+    return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+  };
+
+  /**
+   * @return Config::OpaqueResourceDecoderSharedPtr for external updating usage.
+   */
+  virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() {
+    return nullptr; // if it doesn't support, return nullptr.
+  }
+};
+
+using RpdsApiPtr = std::shared_ptr<RpdsApi>;
 
 /**
  * Low level distributed storage management interface, to be used by state replication module.
@@ -105,6 +133,8 @@ public:
   virtual void deactivate(std::vector<const std::string &> resource_ids) PURE;
 
   virtual void deactivateSvc(const std::string& service_id) PURE;
+
+  virtual void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) PURE;
 
 protected:
   virtual void timedCleanUp() PURE;

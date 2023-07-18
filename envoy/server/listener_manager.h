@@ -39,7 +39,7 @@ public:
   virtual std::string versionInfo() const PURE;
 
   /**
-   * @return std::shared_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
+   * @return std::weak_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
    */
    virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
      return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
@@ -51,7 +51,7 @@ public:
    }
 };
 
-// TODO: use a shared_ptr to enable weak_ptr generate from LdsApiPtr.
+// use a shared_ptr to enable weak_ptr generate from LdsApiPtr.
 using LdsApiPtr = std::shared_ptr<LdsApi>;
 
 /**
