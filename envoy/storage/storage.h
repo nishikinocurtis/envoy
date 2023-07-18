@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "envoy/config/core/v3/config_source.pb.h"
+
 #include "envoy/config/subscription.h"
 #include "envoy/common/pure.h"
 #include "envoy/buffer/buffer.h"

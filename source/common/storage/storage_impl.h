@@ -6,6 +6,11 @@
 #include "envoy/upstream/cluster_manager.h"
 #include "envoy/http/async_client.h"
 
+#include "source/common/common/logger.h"
+#include "source/common/config/subscription_base.h"
+#include "source/common/init/target_impl.h"
+#include "source/common/protobuf/protobuf.h"
+
 namespace Envoy {
 namespace States {
 
@@ -20,6 +25,50 @@ public:
 
 private:
   std::unique_ptr<Buffer::Instance> buf_;
+};
+
+class Replicator; // temporary
+
+class RpdsApiImpl : public RpdsApi,
+                    Envoy::Config::SubscriptionBase<Replicator>,
+                    // TODO: should be storage::v3::Replicator
+                    Logger::Loggable<Logger::Id::rr_manager> {
+public:
+  RpdsApiImpl(const envoy::config::core::v3::ConfigSource &rpds_config,
+              std::shared_ptr<Storage> &&str_manager,
+              Upstream::ClusterManager &cm,
+              Init::Manager &init_manager, Stats::Scope &scope,
+              ProtobufMessage::ValidationVisitor validation_visitor);
+
+  // States::RpdsApi
+  std::string versionInfo() const override { return version_info_; }
+
+  std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
+    return shared_from_this(); // implicitly downgraded, defined at interface level to avoid exposing lifecycle control.
+  }
+
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() override {
+    return resource_decoder_;
+  }
+
+private:
+  // Config::SubscriptionCallbacks
+  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
+                      const std::string& version_info) override;
+  void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
+                      const Protobuf::RepeatedPtrField<std::string>& removed_resources,
+                      const std::string& system_version_info) override;
+  void onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
+                            const EnvoyException* e) override;
+
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoder() { return resource_decoder_; }
+
+  Config::SubscriptionPtr subscription_;
+  std::string version_info_;
+  std::shared_ptr<Storage> str_manager_;
+  Stats::ScopeSharedPtr scope_;
+  Upstream::ClusterManager& cm_;
+  Init::TargetImpl init_target_;
 };
 
 class StorageImpl : public Storage { // need to be HttpAsyncClientCallbacks
