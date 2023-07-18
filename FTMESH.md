@@ -41,59 +41,59 @@
 
 ### Storage Module
 
-[ ] `StorageImpl::makeHttpCall` (reference to `lua_filter.cc`)
+- [ ] `StorageImpl::makeHttpCall` (reference to `lua_filter.cc`)
 
-[ ] `StorageImpl::add_shift_removeTargetClusters` modifying replication target (depend on target_clusters_)
+- [ ] `StorageImpl::add_shift_removeTargetClusters` modifying replication target (depend on target_clusters_)
 
-[ ] `StorageImpl::begin_endTargetImpl` considering monitoring ongoing replication requests
+- [ ] `StorageImpl::begin_endTargetImpl` considering monitoring ongoing replication requests
 
-[ ] `StorageImpl::replicate` and overwriting functions (depend on makeHttpCall and target_clusters_)
+- [ ] `StorageImpl::replicate` and overwriting functions (depend on makeHttpCall and target_clusters_)
 (considering coroutine/multi-thread optimization)
 
-[ ] `StorageImpl::recover` and overwriting functions (investigate how to make localhost call with makeHttpCall)
+- [ ] `StorageImpl::recover` and overwriting functions (investigate how to make localhost call with makeHttpCall)
 (maybe specify a special static cluster and endpoint)
 
-[ ] `StorageImpl::write` (register States to the map and register a timer to cleanup)
+- [ ] `StorageImpl::write` (register States to the map and register a timer to cleanup)
 
-[ ] `StorageImpl::deactivate` (manually clean up)
+- [ ] `StorageImpl::deactivate` (manually clean up)
 
-[ ] Rpds API .proto file composition and compiling
+- [ ] Rpds API .proto file composition and compiling
 
 ### Buffer Interface and OwnedImpl
 
-[ ] Add capability of moving out from certain position, reduce copy as much as possible.
+- [ ] Add capability of moving out from certain position, reduce copy as much as possible.
 
 ### StateReplicationFilter 
 
-[ ] `decodeHeader` generate StateMetadata and put it into private member, 
+- [ ] `decodeHeader` generate StateMetadata and put it into private member, 
 record content-length and x-replicate-length. depend on configuration, drop the x-replicate headers or not.
 
 
-[ ] `decodeData` extract States by BufferMethod: moveOutFrom, which then mutates data
+- [ ] `decodeData` extract States by BufferMethod: moveOutFrom, which then mutates data
 
-[ ] `decodeTrailer` maybe do nothing special
+- [ ] `decodeTrailer` maybe do nothing special
 
-[ ] maintain internal members.
+- [ ] maintain internal members.
 
 ### Failover Manager
 
-[ ] maintain internal members (cluster manager)
+- [ ] maintain internal members (cluster manager)
 
-[ ] migrate makeHttpCall to issue recovery signal
+- [ ] migrate makeHttpCall to issue recovery signal
 
-[ ] investigate how envoy currently do health check and integrate Failover to it.
+- [ ] investigate how envoy currently do health check and integrate Failover to it.
 
 ### ReplicateRecoverHandler
 
-[ ] `onFailureRecovery`
+- [ ] `onFailureRecovery`
 
-[ ] `onStatesReplication`
+- [ ] `onStatesReplication`
 
-[ ] register handlers to the FastReconfigServerImpl
+- [ ] register handlers to the FastReconfigServerImpl
 
 ### Istio
 
-[ ] Rpds API Server, centralize failure recovey decision
+- [ ] Rpds API Server, centralize failure recovey decision
 
 
 
