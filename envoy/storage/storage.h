@@ -99,7 +99,7 @@ public:
    */
   virtual void replicate(const std::string& resource_id) PURE;
 
-  // Not supporting packed transmission, just for calling convenience.
+  // Should support packed transmission.
   virtual void replicate(std::vector<const std::string &> resource_ids) PURE;
 
   // TODO: consider if we can pack up this.
@@ -144,7 +144,18 @@ public:
   virtual void endTargetUpdate() PURE; // failure info
 
   // receive DeltaRpdsTargetUpdate from xDS requires a decent design of how we locate a replication target.
-  virtual void
+  // the change could happen in two level (or we cheat here to remove the svc level): which svc we recognize and
+  // which pods to replicate to upon receiving states from this svc.
+  // If we force that one envoy instance can serve as sidecar for only one service at any time, then it becomes easy:
+  // just a List of string for memory efficiency
+  // on service shift: just discarding the whole list and initialize a new one.
+  // on normal update: insert or remove from the list. (O(n), this wouldn't incur much overhead, since it's much less
+  // frequently, and the replication process itself consumes O(n) time).
+  virtual void addTargetClusters(std::vector<std::string> clusters) PURE;
+
+  virtual void shiftTargetClusters(std::vector<std::string> clusters) PURE;
+
+  virtual void removeTargetClusters(std::vector<std::string> clusters) PURE;
 
 protected:
   virtual void timedCleanUp() PURE;

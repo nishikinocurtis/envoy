@@ -60,13 +60,16 @@ RpdsApiImpl::RpdsApiImpl(const envoy::config::core::v3::ConfigSource &rpds_confi
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &resources,
                                  const std::string &version_info) {
   //TODO: TBI
+  // call the str_manager_->shiftTargetClusters
 }
 
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &added_resources,
                                  const Protobuf::RepeatedPtrField<std::string>& removed_resources,
                                  const std::string &system_version_info) {
   //TODO: TBI
-  // call the str_manager_->updateReplicationCluster, remember to drain current traffics.
+  // call the str_manager_->removeTargetCluster
+
+  // call the str_manager_->addTargetCluster, remember to drain current traffics.
 }
 
 void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,

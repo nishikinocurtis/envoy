@@ -71,16 +71,47 @@ private:
   Init::TargetImpl init_target_;
 };
 
-class StorageImpl : public Storage { // need to be HttpAsyncClientCallbacks
+class StorageImpl : public Storage,
+                    public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
 public:
+  StorageImpl(const envoy::config::core::v3::ConfigSource& rpds_config,
+              Upstream::ClusterManager& cm);
 
   void write(std::shared_ptr<StateObject>&& obj) override;
 
+  // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;
-  // need to take in some filter object, which hold a cluster manager.
 
-  // SubscriptionCallback
-  // SubscriptionBase<v3::Replication>
+  // Should support packed transmission
+  void replicate(std::vector<const std::string &> resource_ids) override;
+
+  // Packed transmission in another dimension
+  void replicateSvc(const std::string& service_id) override;
+
+  void recover(const std::string& resource_id) override;
+
+  // Consider supporting packed transmission.
+  void recover(std::vector<const std::string &> resource_ids) override;
+
+  // TODO: consider if we can pack up this.
+  void recoverSvc(const std::string& service_id) override;
+
+  void deactivate(const std::string& resource_id) override;
+
+  void deactivate(std::vector<const std::string &> resource_ids) override;
+
+  void deactivateSvc(const std::string& service_id) override;
+
+  void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) override;
+
+  void addTargetClusters(std::vector<std::string> clusters) override;
+  void shiftTargetClusters(std::vector<std::string> clusters) override;
+  void removeTargetClusters(std::vector<std::string> clusters) override;
+
+  // Http::AsyncClient::Callbacks
+  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override;
+  void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override;
+  void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override;
 
 private:
 
@@ -105,10 +136,14 @@ private:
   // create RpDS Api
   // Request: my service name
   // Response: + target cluster names - target cluster names.
+  RpdsApiPtr rpds_api_;
+
+  std::unique_ptr<std::list<std::string>> target_clusters_;
 
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()
   // maintain a quorom counter per version
+  Upstream::ClusterManager& cm_;
 };
 
 class StorageSingleton {
@@ -124,6 +159,14 @@ public:
     } else {
       return ptr_;
     }
+  }
+
+  static std::shared_ptr<Storage> getInstance() {
+    if (ptr_ == nullptr) {
+      // should log invalid here
+      return nullptr;
+    }
+    return ptr_;
   }
 private:
   static std::shared_ptr<Storage> ptr_;
