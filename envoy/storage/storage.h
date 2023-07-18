@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "envoy/config/core/v3/config_source.pb.h"
 
@@ -137,6 +138,13 @@ public:
   virtual void deactivateSvc(const std::string& service_id) PURE;
 
   virtual void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) PURE;
+
+  virtual void beginTargetUpdate() PURE;
+
+  virtual void endTargetUpdate() PURE; // failure info
+
+  // receive DeltaRpdsTargetUpdate from xDS requires a decent design of how we locate a replication target.
+  virtual void
 
 protected:
   virtual void timedCleanUp() PURE;
