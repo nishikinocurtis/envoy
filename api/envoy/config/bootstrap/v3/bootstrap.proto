@@ -14,6 +14,7 @@ import "envoy/config/core/v3/socket_option.proto";
 import "envoy/config/listener/v3/listener.proto";
 import "envoy/config/metrics/v3/stats.proto";
 import "envoy/config/overload/v3/overload.proto";
+import "envoy/config/rerouting/rerouting.proto";
 import "envoy/config/trace/v3/http_tracer.proto";
 import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
 import "envoy/type/v3/percent.proto";
@@ -41,7 +42,7 @@ option (udpa.annotations.file_status).package_version_status = ACTIVE;
 // <config_overview_bootstrap>` for more detail.
 
 // Bootstrap :ref:`configuration overview <config_overview_bootstrap>`.
-// [#next-free-field: 38]
+// [#next-free-field: 39]
 message Bootstrap {
   option (udpa.annotations.versioning).previous_message_type =
       "envoy.config.bootstrap.v2.Bootstrap";
@@ -360,6 +361,11 @@ message Bootstrap {
   // Envoy only supports ListenerManager for this field and Envoy Mobile
   // supports ApiListenerManager.
   core.v3.TypedExtensionConfig listener_manager = 37;
+
+  // This controls the rerouting server
+  // bool rerouting specifies if the rerouting server is activated
+  // int port gives the port number
+  rerouting.Rerouting rerouting = 38;
 }
 
 // Administration interface :ref:`operations documentation
