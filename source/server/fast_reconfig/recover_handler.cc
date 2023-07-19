@@ -19,7 +19,7 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
                                                       Buffer::Instance &response) {
   // TODO: TBI
   // call storage_ptr_->recover()
-  ENVOY_LOG(debug, "Recovery signal received for service x with resource-id x, method x, " +
+  ENVOY_LOG(debug, "Recovery signal received for service x with resource-id x, method x, "
                    "deliver to port p uri u at time t.");
   return Http::Code::OK;
 }

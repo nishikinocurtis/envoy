@@ -18,7 +18,9 @@ namespace Envoy {
 namespace States {
 
 enum StorageMetaDataFlags : uint16_t {
-  TYPED = 1
+  TYPED = 1,
+  HANDSHAKE = 1 << 1
+
 };
 
 class StorageMetadata {

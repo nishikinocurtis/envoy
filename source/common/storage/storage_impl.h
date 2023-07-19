@@ -75,6 +75,7 @@ class StorageImpl : public Storage,
                     public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
 public:
   StorageImpl(const envoy::config::core::v3::ConfigSource& rpds_config,
+              const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
 
   void write(std::shared_ptr<StateObject>&& obj) override;
@@ -119,8 +120,9 @@ private:
   // consider how to make it parallel without blocking.
   // need a cluster manager, but cluster implies auto load-balancing
   // use endpoint
-  int makeHttpCall(const std::string& target, Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
-                   Http::AsyncClient::Callbacks& callbacks);
+  Http::AsyncClient::Request* makeHttpCall(const std::string& target, std::unique_ptr<Http::RequestHeaderMap>&& headers,
+                                           Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
+                                           Http::AsyncClient::Callbacks& callbacks);
 
   using WeakReferenceStateMap = std::unordered_map<std::string, std::weak_ptr<StateObject>>;
 
@@ -143,6 +145,7 @@ private:
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()
   // maintain a quorom counter per version
+  LocalInfo::LocalInfo& local_info_;
   Upstream::ClusterManager& cm_;
 };
 
@@ -153,6 +156,7 @@ public:
 
   static std::shared_ptr<Storage> getOrCreateInstance(
       // with necessary arguments
+      // call this from server.cc to initialize.
       ) {
     if (ptr_ == nullptr) {
       ptr_ = new StorageImpl(); //arguments

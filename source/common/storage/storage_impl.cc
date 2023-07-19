@@ -4,9 +4,13 @@
 
 #include "storage_impl.h"
 
+#include "envoy/http/codes.h"
+
 #include "source/common/common/assert.h"
 
 #include "source/common/buffer/buffer_impl.h"
+#include "source/common/http/message_impl.h"
+#include "source/common/http/header_map_impl.h"
 
 
 namespace Envoy {
@@ -103,11 +107,85 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
 
 void StorageImpl::replicate(const std::string &resource_id) {
   // makeHttpCall
+  auto it = states_.find(resource_id);
+
+  Http::AsyncClient::RequestOptions options;
+  // build options
+
+  if (it != states_.end()) {
+    for (const auto& target : *target_clusters_) { // always async
+      auto headers = Http::RequestHeaderMapImpl::create();
+      // populate, filling in metadata,
+      // filling in host and path from configuration
+      makeHttpCall(target, std::move(headers),
+                   it->second->getObject(), options, *this);
+    }
+  } else {
+    // report not found
+    ENVOY_LOG(debug, "resource x not found for replication");
+  }
+
 }
 
-int StorageImpl::makeHttpCall(const std::string& target, Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
-                  Http::AsyncClient::Callbacks& callbacks) {
-  return 0;
+void StorageImpl::recover(const std::string& resource_id) {
+  // makeHttpCall, combine with recover port and path
+  // depending on if the port+path is a handshake port
+  auto it = states_.find(resource_id);
+
+  if (it != states_.end()) {
+    auto metadata = it->second->metadata();
+    Http::AsyncClient::RequestOptions options;
+
+    if (metadata.flags & HANDSHAKE) {
+      // handshake logic TBI
+      ENVOY_LOG(debug, "non-final port recovery not implemented");
+    } else {
+      // makeHttpCall, transfer the resource.
+      auto headers = Http::RequestHeaderMapImpl::create();
+      // populate, fill in host and path from metadata
+      headers->setHost(local_info_.address()->logicalName() + std::to_string(metadata.recover_port_));
+      // how to be aware of which cluster I am sending to?
+      // actually I'm just sending to localhost...
+      auto deliver_target = local_info_.clusterName();
+      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
+      return;
+    }
+  } else {
+    ENVOY_LOG(debug, "resource x not found for recovery");
+  }
+}
+
+Http::AsyncClient::Request* StorageImpl::makeHttpCall(
+    const std::string& target, std::unique_ptr<Http::RequestHeaderMap>&& headers,
+    Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
+    Http::AsyncClient::Callbacks& callbacks) {
+  if (headers->Path() == nullptr) {
+    // not responsible for filling replicate endpoint
+    return nullptr;
+  }
+  if (headers->Host() == nullptr) {
+    // fill in cluster
+    headers->setHost(target);
+  }
+  if (headers->Method() == nullptr) {
+    // fill in POST
+    headers->setMethod("POST");
+  }
+
+  const auto thread_local_cluster = cm_.getThreadLocalCluster(target);
+  if (thread_local_cluster == nullptr) {
+    ENVOY_LOG(debug, "Cannot find replication target cluster x");
+    return nullptr;
+  }
+
+  Http::RequestMessagePtr message(new Http::RequestMessageImpl(std::move(headers)));
+  auto body_length = data.length();
+  if (body_length != 0) {
+    message->body().add(data);
+    message->headers().setContentLength(body_length);
+  }
+
+  return thread_local_cluster->httpAsyncClient().send(std::move(message), callbacks, options);
 }
 
 }
