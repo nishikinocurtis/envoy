@@ -71,9 +71,24 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
                                  const Protobuf::RepeatedPtrField<std::string>& removed_resources,
                                  const std::string &system_version_info) {
   //TODO: TBI
+  str_manager_->beginTargetUpdate();
   // call the str_manager_->removeTargetCluster
+  std::vector<std::string> removed_targets;
+  for (const auto& target_to_remove : removed_resources) {
+    removed_targets.push_back(target_to_remove);
+  }
+  str_manager_->removeTargetClusters(removed_targets);
+
+  std::vector<std::string> added_targets;
+  for (const auto& target_to_add : added_resources) {
+    std::string target;
+    // cast from Message
+    added_targets.push_back(target);
+  }
+  str_manager_->addTargetClusters(added_targets);
 
   // call the str_manager_->addTargetCluster, remember to drain current traffics.
+  str_manager_->endTargetUpdate();
 }
 
 void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
