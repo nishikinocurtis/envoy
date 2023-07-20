@@ -1,10 +1,12 @@
 //
 // Created by qiutong on 7/10/23.
 //
+#pragma once
 
 #include "envoy/storage/storage.h"
 #include "envoy/upstream/cluster_manager.h"
 #include "envoy/http/async_client.h"
+#include "envoy/event/timer.h"
 
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
@@ -74,7 +76,8 @@ private:
 class StorageImpl : public Storage,
                     public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
 public:
-  StorageImpl(const envoy::config::core::v3::ConfigSource& rpds_config,
+  StorageImpl(Event::Dispatcher& diaptcher,
+              const envoy::config::core::v3::ConfigSource& rpds_config,
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
 
@@ -105,9 +108,9 @@ public:
 
   void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) override;
 
-  void addTargetClusters(std::vector<std::string> clusters) override;
-  void shiftTargetClusters(std::vector<std::string> clusters) override;
-  void removeTargetClusters(std::vector<std::string> clusters) override;
+  void addTargetCluster(const std::string& cluster) override;
+  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override;
+  void removeTargetCluster(const std::string& cluster) override;
 
   // Http::AsyncClient::Callbacks
   void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override;
@@ -126,12 +129,15 @@ private:
 
   using WeakReferenceStateMap = std::unordered_map<std::string, std::weak_ptr<StateObject>>;
 
+  std::unordered_map<std::string, Event::TimerPtr> ttl_timers_;
   std::unordered_map<std::string, std::shared_ptr<StateObject>> states_;
   WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_name
 
   // need a optionGenerator
   // for AsyncClient.send() usage.
   void populateRequestOption();
+
+  Event::Dispatcher& dispatcher_;
 
   // need target cluster names
   // subscription from xDS?

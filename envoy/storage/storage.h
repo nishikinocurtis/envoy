@@ -153,11 +153,11 @@ public:
   // on service shift: just discarding the whole list and initialize a new one.
   // on normal update: insert or remove from the list. (O(n), this wouldn't incur much overhead, since it's much less
   // frequently, and the replication process itself consumes O(n) time).
-  virtual void addTargetClusters(std::vector<std::string> clusters) PURE;
+  virtual void addTargetCluster(const std::string& cluster) PURE;
 
-  virtual void shiftTargetClusters(std::vector<std::string> clusters) PURE;
+  virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) PURE;
 
-  virtual void removeTargetClusters(std::vector<std::string> clusters) PURE;
+  virtual void removeTargetCluster(const std::string& cluster) PURE;
 
 protected:
   virtual void timedCleanUp() PURE;

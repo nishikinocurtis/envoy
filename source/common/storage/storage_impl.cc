@@ -65,6 +65,19 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
                                  const std::string &version_info) {
   //TODO: TBI
   // call the str_manager_->shiftTargetClusters
+  auto new_target_list = std::make_unique<std::list<std::string>>();
+
+  str_manager_->beginTargetUpdate();
+
+  for (const auto& target_to_add : resources) {
+    std::string target;
+    // cast to target
+    new_target_list->push_back(target);
+  }
+
+  str_manager_->shiftTargetClusters(std::move(new_target_list));
+
+  str_manager_->endTargetUpdate();
 }
 
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &added_resources,
@@ -73,19 +86,21 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
   //TODO: TBI
   str_manager_->beginTargetUpdate();
   // call the str_manager_->removeTargetCluster
-  std::vector<std::string> removed_targets;
+  // std::vector<std::string> removed_targets;
   for (const auto& target_to_remove : removed_resources) {
-    removed_targets.push_back(target_to_remove);
+    // removed_targets.push_back(target_to_remove);
+    str_manager_->removeTargetCluster(target_to_remove);
   }
-  str_manager_->removeTargetClusters(removed_targets);
 
-  std::vector<std::string> added_targets;
+
+  // std::vector<std::string> added_targets;
   for (const auto& target_to_add : added_resources) {
     std::string target;
     // cast from Message
-    added_targets.push_back(target);
+    // added_targets.push_back(target);
+    str_manager_->addTargetCluster(target);
   }
-  str_manager_->addTargetClusters(added_targets);
+
 
   // call the str_manager_->addTargetCluster, remember to drain current traffics.
   str_manager_->endTargetUpdate();
@@ -109,6 +124,9 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
     // cancel old timer
     // do some remove event,
     // move new object
+    auto timer_old = ttl_timers_.find(metadata.resource_id_);
+    timer_old->second->disableTimer();
+
     existing->second->move(*obj);
   } else {
     auto inserted_pair = states_.insert(std::make_pair(metadata.resource_id_, std::move(obj)));
@@ -118,6 +136,14 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
   // register new timer.
   // timer = add_event(cb, timeout)
   // cb written here, [this, metadata]() -> { this->states_.remove(metadata.resource_id); }
+  auto timer_ptr = dispatcher_.createTimer([this, metadata]() {
+    this->states_.erase(metadata.resource_id_);
+  });
+  std::chrono::microseconds ttl(metadata.ttl_ * 1000);
+  timer_ptr->enableHRTimer(ttl);
+
+  // register to a unordered_map.
+  ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
 }
 
 void StorageImpl::replicate(const std::string &resource_id) {
