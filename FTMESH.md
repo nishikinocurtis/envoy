@@ -61,11 +61,11 @@
 
 ### Buffer Interface and OwnedImpl
 
-- [ ] Add capability of moving out from certain position, reduce copy as much as possible.
+- [x] Add capability of moving out from certain position, reduce copy as much as possible.
 
 ### StateReplicationFilter 
 
-- [ ] `decodeHeader` generate StateMetadata and put it into private member, 
+- [x] `decodeHeader` generate StateMetadata and put it into private member, 
 record content-length and x-replicate-length. depend on configuration, drop the x-replicate headers or not.
 
 

@@ -2,6 +2,8 @@
 // Created by qiutong on 7/11/23.
 //
 
+#pragma once
+
 #include "envoy/server/instance.h"
 #include "envoy/storage/storage.h"
 #include "source/common/common/logger.h"

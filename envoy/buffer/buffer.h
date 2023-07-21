@@ -277,6 +277,14 @@ public:
   virtual void move(Instance& rhs, uint64_t length) PURE;
 
   /**
+   * truncate the body starting from position of rhs to this.
+   * @param rhs the buffer instance to be truncated.
+   * @param position the starting position in rhs.
+   */
+  virtual void truncateOut(Instance& rhs, uint64_t position) { }
+  // do nothing for a fallback implementation, don't require other modules to implement this.
+
+  /**
    * Reserve space in the buffer for reading into. The amount of space reserved is determined
    * based on buffer settings and performance considerations.
    * @return a `Reservation`, on which `commit()` can be called, or which can

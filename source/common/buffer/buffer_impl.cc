@@ -349,6 +349,42 @@ void OwnedImpl::move(Instance& rhs, uint64_t length) {
   other.postProcess();
 }
 
+void OwnedImpl::truncateOut(Envoy::Buffer::Instance &rhs, uint64_t position) {
+  ASSERT(&rhs != this);
+  // consider a more decent implementation,
+  // however Slice do not have a drain from tail function,
+  // maybe current implementation can be a good one.
+
+  // a better one: move the last slices from the largest starting position <= position
+  // then move reversely [0, position - starting] from this to rhs.
+  // this avoids moving the first several slices back and forth
+
+  // this->move(rhs); // first move in all content
+  // rhs.move(*this, position); // then move the [0, position] out.
+
+  // starting from last position
+  OwnedImpl& other = static_cast<OwnedImpl&>(rhs); // adopted from move().
+  auto truncate_size = other.length_ - position;
+  while (truncate_size > 0) {
+    const uint64_t slice_size = other.slices_.back().dataSize();
+    slices_.emplace_front(std::move(other.slices_.back()));
+    length_ += slice_size;
+
+    other.slices_.pop_back();
+    other.length_ -= slice_size;
+
+    // --- make sure all data are correct before this line! ---
+    if (truncate_size < slice_size) {
+      // need to return back the first (slice_size - truncate_size) bytes
+      other.move(*this, slice_size - truncate_size);
+      break;
+    } else {
+      truncate_size -= slice_size;
+    }
+  }
+
+}
+
 Reservation OwnedImpl::reserveForRead() {
   return reserveWithMaxLength(default_read_reservation_size_);
 }
