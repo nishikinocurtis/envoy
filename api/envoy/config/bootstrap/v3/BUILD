@@ -13,6 +13,7 @@ api_proto_package(
         "//envoy/config/listener/v3:pkg",
         "//envoy/config/metrics/v3:pkg",
         "//envoy/config/overload/v3:pkg",
+        "//envoy/config/rerouting/v3:pkg",
         "//envoy/config/trace/v3:pkg",
         "//envoy/extensions/transport_sockets/tls/v3:pkg",
         "//envoy/type/v3:pkg",

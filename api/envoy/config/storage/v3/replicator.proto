@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package envoy.config.storage.v3;
+
+message Replicator {
+  string name = 1;
+  repeated string cluster_names = 2;
+}

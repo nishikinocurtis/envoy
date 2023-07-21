@@ -1,27 +1,27 @@
 syntax = "proto3";
 
-package envoy.config.rerouting;
+package envoy.config.rerouting.v3;
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/wrappers.proto";
 
-import "envoy/annotations/deprecation.proto";
 import "udpa/annotations/migrate.proto";
 import "udpa/annotations/security.proto";
 import "udpa/annotations/status.proto";
 import "udpa/annotations/versioning.proto";
 import "validate/validate.proto";
 
-option java_package = "io.envoyproxy.envoy.config.rerouting";
+option java_package = "io.envoyproxy.envoy.config.rerouting.v3";
 option java_outer_classname = "ReroutingProto";
 option java_multiple_files = true;
+option go_package = "github.com/envoyproxy/go-control-plane/envoy/config/rerouting/v3;reroutingv3";
 option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
 message Rerouting {
-    option (udpa.annotations.versioning).previous_message_type = "None";
+  option (udpa.annotations.versioning).previous_message_type = "None";
 
-    bool rerouting = 1;
+  bool rerouting = 1;
 
-    int port = 2;
+  uint32 port = 2;
 }
