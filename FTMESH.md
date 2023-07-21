@@ -41,19 +41,19 @@
 
 ### Storage Module
 
-- [ ] `StorageImpl::makeHttpCall` (reference to `lua_filter.cc`)
+- [x] `StorageImpl::makeHttpCall` (reference to `lua_filter.cc`)
 
-- [ ] `StorageImpl::add_shift_removeTargetClusters` modifying replication target (depend on target_clusters_)
+- [x] `StorageImpl::add_shift_removeTargetClusters` modifying replication target (depend on target_clusters_)
 
 - [ ] `StorageImpl::begin_endTargetImpl` considering monitoring ongoing replication requests
 
-- [ ] `StorageImpl::replicate` and overwriting functions (depend on makeHttpCall and target_clusters_)
+- [x] `StorageImpl::replicate` and overwriting functions (depend on makeHttpCall and target_clusters_)
 (considering coroutine/multi-thread optimization)
 
-- [ ] `StorageImpl::recover` and overwriting functions (investigate how to make localhost call with makeHttpCall)
+- [x] `StorageImpl::recover` and overwriting functions (investigate how to make localhost call with makeHttpCall)
 (maybe specify a special static cluster and endpoint)
 
-- [ ] `StorageImpl::write` (register States to the map and register a timer to cleanup)
+- [x] `StorageImpl::write` (register States to the map and register a timer to cleanup)
 
 - [ ] `StorageImpl::deactivate` (manually clean up)
 
@@ -83,13 +83,13 @@ record content-length and x-replicate-length. depend on configuration, drop the 
 
 - [ ] investigate how envoy currently do health check and integrate Failover to it.
 
-### ReplicateRecoverHandler
+### ~~ReplicateRecoverHandler~~
 
-- [ ] `onFailureRecovery`
+- [x] `onFailureRecovery`
 
-- [ ] `onStatesReplication`
+- [x] `onStatesReplication`
 
-- [ ] register handlers to the FastReconfigServerImpl
+- [x] register handlers to the FastReconfigServerImpl
 
 ### Istio
 
