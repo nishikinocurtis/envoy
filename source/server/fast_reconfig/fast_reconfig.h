@@ -9,13 +9,16 @@
 #include "envoy/server/fast_reconfig.h"
 #include "envoy/server/instance.h"
 #include "envoy/server/listener_manager.h"
+#include "envoy/storage/storage.h"
 #include "source/common/buffer/buffer_impl.h"
 #include "source/common/common/empty_string.h"
 #include "source/common/http/conn_manager_config.h"
 #include "source/common/http/conn_manager_impl.h"
 #include "source/common/http/header_map_impl.h"
+#include "source/common/http/date_provider_impl.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 #include "source/server/fast_reconfig/listener_handler.h"
+#include "source/server/fast_reconfig/recover_handler.h"
 #include "source/server/null_overload_manager.h"
 #include "source/server/server_endpoint_listener.h"
 #include "source/server/server_endpoint_filter.h"
@@ -38,7 +41,8 @@ public:
   FastReconfigServerImpl(Server::Instance& server,
                          bool ignore_global_conn_limit,
                          SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
-                         Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder);
+                         Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder,
+                         std::shared_ptr<States::Storage>&& storage_manager);
 
   const Network::Socket& socket() override { return *socket_; }
   void registerListenerToConnectionHandler(Network::ConnectionHandler* conn_handler) override;
@@ -252,6 +256,7 @@ private:
   NullOverloadManager null_overload_manager_;
   const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
   ListenerHandler listener_reconfig_handler_instance_;
+  ReplicateRecoverHandler replicate_recover_handler_instance_;
   Network::SocketSharedPtr socket_;
   std::map<std::string, HandlerRegistrationItem> handler_registry_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
@@ -273,7 +278,6 @@ private:
   const AdminInternalAddressConfig internal_address_config_;
   std::vector<Http::ClientCertDetailsType> set_current_client_cert_details_;
   absl::optional<std::string> user_agent_;
-  ReconfigListenerPtr listener_;
   Http::Http1Settings http1_settings_;
   const LocalReply::LocalReplyPtr local_reply_;
   const std::vector<Http::OriginalIPDetectionSharedPtr> detection_extensions_{};

@@ -30,18 +30,25 @@ using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImp
 FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
                                                bool ignore_global_conn_limit,
                                                SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
-                                               Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder)
+                                               Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder,
+                                               std::shared_ptr<States::Storage>&& storage_manager)
     : server_(server),
       null_overload_manager_(server_.threadLocal()),
       fast_reconfig_server_filter_chain_(std::make_shared<FastReconfigFilterChain>()),
       listener_reconfig_handler_instance_(server_,
                                           std::move(listener_reconfig_callback),
                                           std::move(listener_reconfig_resource_decoder)),
+      replicate_recover_handler_instance_(server_,
+                                          std::move(storage_manager)),
       ignore_global_conn_limit_(ignore_global_conn_limit)
                                                {
   handler_registry_["/rr_listener"] =
       registerHandler(HANDLER_WRAPPER(listener_reconfig_handler_instance_.pushNewListenersHandler));
-}
+  handler_registry_["/replicate_single"] =
+      registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onStatesReplication));
+  handler_registry_["/failure_single"] =
+      registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onFailureRecovery));
+                                               }
 
 GrpcMessageImpl::GrpcMessageImpl() {
   headers_ = Http::ResponseHeaderMapImpl::create();
