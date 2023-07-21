@@ -53,6 +53,7 @@ proto_library(
         "//envoy/config/overload/v3:pkg",
         "//envoy/config/ratelimit/v3:pkg",
         "//envoy/config/rbac/v3:pkg",
+        "//envoy/config/rerouting/v3:pkg",
         "//envoy/config/resource_monitor/fixed_heap/v2alpha:pkg",
         "//envoy/config/resource_monitor/injected_resource/v2alpha:pkg",
         "//envoy/config/retry/omit_canary_hosts/v2:pkg",

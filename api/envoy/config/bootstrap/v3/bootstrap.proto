@@ -14,7 +14,7 @@ import "envoy/config/core/v3/socket_option.proto";
 import "envoy/config/listener/v3/listener.proto";
 import "envoy/config/metrics/v3/stats.proto";
 import "envoy/config/overload/v3/overload.proto";
-import "envoy/config/rerouting/rerouting.proto";
+import "envoy/config/rerouting/v3/rerouting.proto";
 import "envoy/config/trace/v3/http_tracer.proto";
 import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
 import "envoy/type/v3/percent.proto";
@@ -365,7 +365,7 @@ message Bootstrap {
   // This controls the rerouting server
   // bool rerouting specifies if the rerouting server is activated
   // int port gives the port number
-  rerouting.Rerouting rerouting = 38;
+  rerouting.v3.Rerouting rerouting = 38;
 }
 
 // Administration interface :ref:`operations documentation
