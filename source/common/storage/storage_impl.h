@@ -95,7 +95,7 @@ public:
   void recover(const std::string& resource_id) override;
 
   // Consider supporting packed transmission.
-  void recover(std::vector<const std::string &> resource_ids) override;
+  void recoverPacked(std::vector<const std::string &> resource_ids) override;
 
   // TODO: consider if we can pack up this.
   void recoverSvc(const std::string& service_id) override;

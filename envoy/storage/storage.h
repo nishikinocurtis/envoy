@@ -36,6 +36,7 @@ public:
 
 class StateObject {
 public:
+  virtual ~StateObject() = default;
   virtual const StorageMetadata& metadata() const {
     return metadata_;
   }
@@ -123,7 +124,7 @@ public:
   virtual void recover(const std::string& resource_id) PURE;
 
   // Not supporting packed transmission, just for calling convenience.
-  virtual void recover(std::vector<const std::string &> resource_ids) PURE;
+  virtual void recoverPacked(std::vector<const std::string &> resource_ids) PURE;
 
   // TODO: consider if we can pack up this.
   virtual void recoverSvc(const std::string& service_id) PURE;

@@ -168,6 +168,7 @@ void StorageImpl::replicate(const std::string &resource_id) {
 
 }
 
+// this should not be async, may wait for socket info
 void StorageImpl::recover(const std::string& resource_id) {
   // makeHttpCall, combine with recover port and path
   // depending on if the port+path is a handshake port
