@@ -2,6 +2,8 @@
 // Created by qiutong on 7/11/23.
 //
 
+#include <string>
+
 #include "source/common/storage/storage_impl.h"
 #include "source/extensions/filters/http/states_replication/states_replication_filter.h"
 
@@ -23,6 +25,8 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   Envoy::States::StorageMetadata metadata;
   metadata.resource_id_ = resource_id;
 
+  states_position_ = std::stoull(headers.getByKey("x-ftmesh-states-position").value_or("0"), nullptr);
+
   state_obj_ = std::make_unique<Envoy::States::RawBufferStateObject>(metadata);
   is_attached_ = true;
   return Http::FilterHeadersStatus::StopIteration;
@@ -32,7 +36,9 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
   if (!is_attached_) {
     return PassThroughDecoderFilter::decodeData(data, end_stream);
   } else {
-
+    state_obj_->getObject().truncateOut(data, states_position_);
+    storage_manager_->write(std::move(state_obj_));
+    return Http::FilterDataStatus::Continue;
   }
 }
 

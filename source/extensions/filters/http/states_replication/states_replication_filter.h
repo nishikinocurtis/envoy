@@ -30,6 +30,7 @@ private:
   std::shared_ptr<Envoy::States::Storage> storage_manager_;
   std::unique_ptr<Envoy::States::StateObject> state_obj_;
   bool is_attached_ = false;
+  uint64_t states_position_;
 };
 
 } // namespace States

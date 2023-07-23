@@ -69,11 +69,11 @@
 record content-length and x-replicate-length. depend on configuration, drop the x-replicate headers or not.
 
 
-- [ ] `decodeData` extract States by BufferMethod: moveOutFrom, which then mutates data
+- [x] `decodeData` extract States by BufferMethod: moveOutFrom, which then mutates data
 
-- [ ] `decodeTrailer` maybe do nothing special
+- [x] `decodeTrailer` maybe do nothing special
 
-- [ ] maintain internal members.
+- [x] maintain internal members.
 
 ### Failover Manager
 
