@@ -114,6 +114,13 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
   init_target_.ready();
 }
 
+StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, const int &rpds_config, const LocalInfo::LocalInfo &local_info,
+                         Upstream::ClusterManager &cm)
+                         : dispatcher_(dispatcher), rpds_api_(rpds_config, shared_from_this(), cm, ),
+                         local_info_(local_info), cm_(cm) {
+  // need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+}
+
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
   StorageMetadata metadata = obj->metadata();
 
@@ -194,6 +201,18 @@ void StorageImpl::recover(const std::string& resource_id) {
     }
   } else {
     ENVOY_LOG(debug, "resource x not found for recovery");
+  }
+}
+
+void StorageImpl::deactivate(const std::string &resource_id) {
+  // first cancel the timer
+  auto timer_old = ttl_timers_.find(resource_id);
+  if (timer_old != ttl_timers_.end()) {
+    timer_old->second->disableTimer();
+    states_.erase(resource_id);
+  } else {
+    // report not found
+    ENVOY_LOG(debug, "target resource x to be deactivated not found.");
   }
 }
 

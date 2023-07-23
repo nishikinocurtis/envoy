@@ -76,7 +76,7 @@ private:
 class StorageImpl : public Storage,
                     public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
 public:
-  StorageImpl(Event::Dispatcher& diaptcher,
+  StorageImpl(Event::Dispatcher& dispatcher,
               const envoy::config::core::v3::ConfigSource& rpds_config,
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
@@ -151,7 +151,7 @@ private:
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()
   // maintain a quorom counter per version
-  LocalInfo::LocalInfo& local_info_;
+  const LocalInfo::LocalInfo& local_info_;
   Upstream::ClusterManager& cm_;
 };
 

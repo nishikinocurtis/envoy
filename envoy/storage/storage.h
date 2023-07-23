@@ -81,8 +81,9 @@ using RpdsApiPtr = std::shared_ptr<RpdsApi>;
  * Low level distributed storage management interface, to be used by state replication module.
  */
 
-class Storage {
+class Storage : public std::enable_shared_from_this<Storage> {
 public:
+  virtual ~Storage() = default;
   /**
    * create or update a StateObject.
    * Fired by StateReplicationFilter on outgoing request,

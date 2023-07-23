@@ -2,6 +2,8 @@
 // Created by qiutong on 7/11/23.
 //
 
+#pragma once
+
 #include "envoy/common/pure.h"
 
 // may depend on upstream.h
@@ -27,7 +29,8 @@ public:
   virtual void onLocalFailure() PURE;
   // signal backup node (pre-selected periodically), with prioritized nodes list
 
-  virtual void onFailureSignal() PURE;
+  // deprecated: let filter call Storage.recovery directly.
+  // virtual void onFailureSignal() PURE;
   // fire Storage.recovery() and block,
   // after necessary socket info gathered, fire notifyP and notifyC.
 };

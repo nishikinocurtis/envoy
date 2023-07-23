@@ -39,7 +39,7 @@
 
 ## To-do List
 
-### Storage Module
+### ~~Storage Module~~
 
 - [x] `StorageImpl::makeHttpCall` (reference to `lua_filter.cc`)
 
@@ -55,15 +55,15 @@
 
 - [x] `StorageImpl::write` (register States to the map and register a timer to cleanup)
 
-- [ ] `StorageImpl::deactivate` (manually clean up)
+- [x] `StorageImpl::deactivate` (manually clean up)
 
-- [ ] Rpds API .proto file composition and compiling
+- [x] Rpds API .proto file composition and compiling
 
-### Buffer Interface and OwnedImpl
+### ~~Buffer Interface and OwnedImpl~~
 
 - [x] Add capability of moving out from certain position, reduce copy as much as possible.
 
-### StateReplicationFilter 
+### ~~StateReplicationFilter~~ 
 
 - [x] `decodeHeader` generate StateMetadata and put it into private member, 
 record content-length and x-replicate-length. depend on configuration, drop the x-replicate headers or not.
@@ -75,13 +75,13 @@ record content-length and x-replicate-length. depend on configuration, drop the 
 
 - [x] maintain internal members.
 
-### Failover Manager
+### ~~Failover Manager~~
 
-- [ ] maintain internal members (cluster manager)
+- [x] maintain internal members (cluster manager)
 
-- [ ] migrate makeHttpCall to issue recovery signal
+- [x] migrate makeHttpCall to issue recovery signal
 
-- [ ] investigate how envoy currently do health check and integrate Failover to it.
+- [x] investigate how envoy currently do health check and integrate Failover to it.
 
 ### ~~ReplicateRecoverHandler~~
 
