@@ -404,6 +404,8 @@ void HealthCheckerImplBase::ActiveHealthCheckSession::handleFailure(
   if (interval_timer_ != nullptr) {
     interval_timer_->enableTimer(parent_.interval(HealthState::Unhealthy, changed_state));
   }
+
+  // call Failover Manager here.
 }
 
 HealthTransition
