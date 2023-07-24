@@ -8,6 +8,7 @@
 #include "envoy/storage/storage.h"
 #include "envoy/upstream/cluster_manager.h"
 #include "envoy/http/async_client.h"
+#include "envoy/event/timer.h"
 
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
@@ -77,6 +78,7 @@ public:
   void onLocalFailure() override;
   // signal backup node (pre-selected periodically), with prioritized nodes list
 
+  void registerPreSelectedRecoveryTarget(const std::string& target) override;
   // void onFailureSignal() override;
   // fire Storage.recovery() and block,
   // after necessary socket info gathered, fire notifyP and notifyC.
@@ -85,10 +87,13 @@ private:
                                            Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
                                            Http::AsyncClient::Callbacks& callbacks);
 
+  Event::Dispatcher& dispatcher_;
   std::shared_ptr<States::Storage> storage_manager_;
   const LocalInfo::LocalInfo& local_info_;
   Upstream::ClusterManager& cm_;
   std::optional<std::string> pre_selection_recovery_;
+  Event::TimerPtr pre_selection_ttl_;
+  std::vector<std::string> critical_connections_; // encode it into Buffer.
 };
 
 } // namespace Failover

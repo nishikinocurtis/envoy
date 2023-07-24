@@ -49,9 +49,53 @@ RcdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reaso
 
 FailoverManagerImpl::FailoverManagerImpl(Event::Dispatcher &dispatcher, const LocalInfo::LocalInfo &local_info,
                                          Upstream::ClusterManager &cm)
-                                         : storage_manager_(States::StorageSingleton::getInstance()),
+                                         : dispatcher_(dispatcher), storage_manager_(States::StorageSingleton::getInstance()),
                                            local_info_(local_info), cm_(cm) {
   // other members to be initialized
+}
+
+void FailoverManagerImpl::onLocalFailure() {
+  // check pre-selected recovery target
+  if (pre_selection_recovery_ != std::nullopt) {
+    // if available send recovery signal
+    // including resource_ids / pod_id / critical connection in
+    auto headers = Http::RequestHeaderMapImpl::create();
+    headers->setByKey("x-ftmesh-pod-id", "x");
+    // DON'T USE THE LOGIC BELOW!!!
+    // compose into Protobuf::Message
+    // repeated Predicates or strings (port number) of ongoing services.
+    // when handler receives, compose a UDPProxyConfig
+    // with matcher, single predicates for IP, ports for inner matcher_map
+    // send to critical nodes (by backup node)
+    // USE THIS LOGIC INSTEAD:
+    // the ongoing services should be included in the metadata already
+    // just send the critical connections (pod ids)
+    // the other side should compose matcher based on ongoing services and their new sockets.
+    // some envoy::config::v3::CriticalPods message;
+    // for (const auto& pod : critical_connections_)
+    //  message.add_podIds(pod);
+    auto body = Buffer::OwnedImpl(); // use Common::serializeMessage
+    // auto request makeHttpCall
+    // yield 0.
+  } else {
+    // notify controller
+  }
+
+  // don't wait for socket feedback: let the backup nodes broadcast i
+}
+
+void FailoverManagerImpl::registerPreSelectedRecoveryTarget(const std::string &target) {
+  uint32_t ttl_arg = 10;
+  if (pre_selection_recovery_ != std::nullopt) {
+    // cancel timer first.
+    pre_selection_ttl_->disableTimer();
+  }
+  pre_selection_recovery_ = target;
+  pre_selection_ttl_ = dispatcher_.createTimer([this]() {
+        pre_selection_recovery_ = std::nullopt;
+      });
+  std::chrono::milliseconds ttl(ttl_arg * 1000);
+  pre_selection_ttl_->enableTimer(ttl);
 }
 
 Http::AsyncClient::Request* FailoverManagerImpl::makeHttpCall(
