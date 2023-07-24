@@ -4,18 +4,49 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "envoy/common/pure.h"
+#include "envoy/config/subscription.h"
 
 // may depend on upstream.h
 
 namespace Envoy {
 namespace Failover {
 
+
+class RcdsApi { // ReCovery Discovery Service
+public:
+  virtual ~RcdsApi() = default;
+
+  /**
+   * @return std::string latest version received from RpDS
+   */
+  virtual std::string versionInfo() const PURE;
+
+  /**
+  * @return std::weak_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
+  */
+  virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+    return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+  };
+
+  /**
+   * @return Config::OpaqueResourceDecoderSharedPtr for external updating usage.
+   */
+  virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() {
+    return nullptr; // if it doesn't support, return nullptr.
+  }
+};
+
+using RcdsApiPtr = std::shared_ptr<RcdsApi>;
+
 class FailoverManager {
 public:
   virtual ~FailoverManager() = default;
 
-  virtual void notifyPrioritizedNodes() PURE;
+  virtual void notifyCriticalConnections() PURE;
   // push the updates to critical sidecars directly.
 
   virtual void notifyController() PURE;
@@ -33,6 +64,10 @@ public:
   // virtual void onFailureSignal() PURE;
   // fire Storage.recovery() and block,
   // after necessary socket info gathered, fire notifyP and notifyC.
+
+  virtual void registerPreSelectedRecoveryTarget(const std::string& target) PURE;
+
+
 };
 
 }

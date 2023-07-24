@@ -93,9 +93,18 @@ record content-length and x-replicate-length. depend on configuration, drop the 
 
 ### Istio
 
-- [ ] Rpds API Server, centralize failure recovey decision
+- [ ] Rpds API Server, centralize failure recovery decision
 
+## To-do List Stage 2 Debugging and Evaluation
 
+### Feature fixing
+
+- [ ] Failover Manager internal logics
+- [ ] debug logs + variable printing at all functions
+- [ ] socket feedback mechanism and configuration format
+- [ ] critical connection maintaining
+
+### Micro benchmarking
 
 
 

@@ -63,6 +63,7 @@ RpdsApiImpl::RpdsApiImpl(const envoy::config::core::v3::ConfigSource &rpds_confi
 
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &resources,
                                  const std::string &version_info) {
+  version_info_ = version_info;
   //TODO: TBI
   // call the str_manager_->shiftTargetClusters
   auto new_target_list = std::make_unique<std::list<std::string>>();
@@ -83,6 +84,8 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &added_resources,
                                  const Protobuf::RepeatedPtrField<std::string>& removed_resources,
                                  const std::string &system_version_info) {
+  version_info_ = system_version_info;
+
   //TODO: TBI
   str_manager_->beginTargetUpdate();
   // call the str_manager_->removeTargetCluster
@@ -146,8 +149,8 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
   auto timer_ptr = dispatcher_.createTimer([this, metadata]() {
     this->states_.erase(metadata.resource_id_);
   });
-  std::chrono::microseconds ttl(metadata.ttl_ * 1000);
-  timer_ptr->enableHRTimer(ttl);
+  std::chrono::milliseconds ttl(metadata.ttl_ * 1000);
+  timer_ptr->enableTimer(ttl);
 
   // register to a unordered_map.
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);

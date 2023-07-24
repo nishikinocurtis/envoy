@@ -51,7 +51,7 @@ protected:
   StorageMetadata metadata_;
 };
 
-class RpdsApi {
+class RpdsApi { // RePlication Discovery Service
 public:
   virtual ~RpdsApi() = default;
 
