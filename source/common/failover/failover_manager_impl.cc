@@ -47,7 +47,9 @@ RcdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reaso
   ENVOY_LOG(debug, "recovery target updating failed, for reason x");
 }
 
-FailoverManagerImpl::FailoverManagerImpl(Event::Dispatcher &dispatcher, const LocalInfo::LocalInfo &local_info,
+FailoverManagerImpl::FailoverManagerImpl(Event::Dispatcher &dispatcher,
+                                         const envoy::config::core::v3::ConfigSource& failover_config,
+                                         const LocalInfo::LocalInfo &local_info,
                                          Upstream::ClusterManager &cm)
                                          : dispatcher_(dispatcher), storage_manager_(States::StorageSingleton::getInstance()),
                                            local_info_(local_info), cm_(cm) {
@@ -77,11 +79,17 @@ void FailoverManagerImpl::onLocalFailure() {
     auto body = Buffer::OwnedImpl(); // use Common::serializeMessage
     // auto request makeHttpCall
     // yield 0.
+    Http::AsyncClient::RequestOptions options;
+    auto request = makeHttpCall(pre_selection_recovery_.value(), std::move(headers), body, options, *this);
   } else {
     // notify controller
   }
 
   // don't wait for socket feedback: let the backup nodes broadcast i
+}
+
+void FailoverManagerImpl::registerCriticalConnection(const std::string &downstream) {
+  critical_connections_.insert(downstream);
 }
 
 void FailoverManagerImpl::registerPreSelectedRecoveryTarget(const std::string &target) {

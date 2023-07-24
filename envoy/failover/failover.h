@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "envoy/config/core/v3/config_source.pb.h"
+
 #include "envoy/common/pure.h"
 #include "envoy/config/subscription.h"
 
@@ -46,13 +48,10 @@ class FailoverManager {
 public:
   virtual ~FailoverManager() = default;
 
-  virtual void notifyCriticalConnections() PURE;
-  // push the updates to critical sidecars directly.
-
   virtual void notifyController() PURE;
   // push the updates to xDS Server, and letting it distribute the new config cluster-widely
 
-  virtual void registerCriticalConnection() PURE;
+  virtual void registerCriticalConnection(const std::string& downstream) PURE;
   // maintain the list of critical nodes/services that has real traffic,
   // or explicitly noted by the administrator.
   // about granularity: per service or per node or per connection?

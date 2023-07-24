@@ -31,6 +31,8 @@ public:
   uint16_t recover_port_, flags;
   uint32_t ttl_;
   std::string recover_uri_, resource_id_, svc_id_, pod_id_, method_name_;
+  std::string svc_ip_, svc_port_;
+  // ip generated from local_info_ on first receiving the states, port attached by application.
   // need design choice: how to implement incremental (delta) storage?
 };
 

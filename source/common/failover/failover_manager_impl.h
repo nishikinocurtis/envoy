@@ -61,19 +61,20 @@ private:
 
 
 class FailoverManagerImpl : public FailoverManager,
+                            public Http::AsyncClient::Callbacks,
                             Logger::Loggable<Logger::Id::rr_manager> {
 public:
   FailoverManagerImpl(Event::Dispatcher& dispatcher,
+                      const envoy::config::core::v3::ConfigSource& failover_config,
                       // std::shared_ptr<States::Storage>&& storage_manager, just get it from the singleton
                       const LocalInfo::LocalInfo& local_info,
                       Upstream::ClusterManager& cm);
 
-  void notifyCriticalConnections() override;
 
   void notifyController() override;
 
   // need parameter: the connection info
-  void registerCriticalConnection() override;
+  void registerCriticalConnection(const std::string& downstream) override;
 
   void onLocalFailure() override;
   // signal backup node (pre-selected periodically), with prioritized nodes list
@@ -82,6 +83,12 @@ public:
   // void onFailureSignal() override;
   // fire Storage.recovery() and block,
   // after necessary socket info gathered, fire notifyP and notifyC.
+
+  // Http::AsyncClient::Callbacks
+  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override;
+  void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override;
+  void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override;
+
 private:
   Http::AsyncClient::Request* makeHttpCall(const std::string& target, std::unique_ptr<Http::RequestHeaderMap>&& headers,
                                            Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
@@ -93,7 +100,8 @@ private:
   Upstream::ClusterManager& cm_;
   std::optional<std::string> pre_selection_recovery_;
   Event::TimerPtr pre_selection_ttl_;
-  std::vector<std::string> critical_connections_; // encode it into Buffer.
+  absl::flat_hash_set<std::string> critical_connections_; // encode it into Buffer.
+  RcdsApiPtr rcds_api_;
 };
 
 } // namespace Failover
