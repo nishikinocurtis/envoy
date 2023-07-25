@@ -48,7 +48,8 @@ Buffer::Instance &RawBufferStateObject::getObject() {
   return *buf_;
 }
 
-RpdsApiImpl::RpdsApiImpl(const std::string &rpds_config,
+RpdsApiImpl::RpdsApiImpl(const std::string &rpds_resource_locator,
+                         envoy::config::core::v3::ConfigSource& rpds_config,
                          std::shared_ptr<Storage> &&str_manager,
                          Upstream::ClusterManager &cm,
                          Init::Manager &init_manager, Stats::Scope &scope,
@@ -56,7 +57,10 @@ RpdsApiImpl::RpdsApiImpl(const std::string &rpds_config,
                          : Config::SubscriptionBase<Replicator>(validation_visitor, "name"),
                            str_manager_(std::move(str_manager)), scope_(scope.createScope("storage.rpds.")),
                            cm_(cm), init_target_("RPDS", [this]() { subscription_->start({}); }) {
-  // create subscription
+  // create subscription, must give both resource_locator and rpds_config.
+  const auto resource_name = getResourceName();
+  subscription_ = cm.subscriptionFactory().collectionSubscriptionFromUrl(
+      rpds_resource_locator, rpds_config, resource_name, *scope_, *this, resource_decoder_);
 
   init_manager.add(init_target_);
 }
@@ -117,11 +121,14 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
   init_target_.ready();
 }
 
-StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, const int &rpds_config, const LocalInfo::LocalInfo &local_info,
+StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server,
+                         const envoy::config::storage::v3::Storage& storage_config, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm)
-                         : dispatcher_(dispatcher), rpds_api_(rpds_config, shared_from_this(), cm, ),
+                         : dispatcher_(dispatcher), server_(server),
+                         rpds_api_(storage_config.rpdsConfig(), shared_from_this(), cm, server_.initManager(),
+                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor()),
                          local_info_(local_info), cm_(cm) {
-  // need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+  // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
 }
 
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {

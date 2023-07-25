@@ -7,6 +7,7 @@
 #include "envoy/upstream/cluster_manager.h"
 #include "envoy/http/async_client.h"
 #include "envoy/event/timer.h"
+#include "envoy/server/instance.h"
 
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
@@ -29,14 +30,14 @@ private:
   std::unique_ptr<Buffer::Instance> buf_;
 };
 
-class Replicator; // temporary
+using Replicator = envoy::config::storage::v3::Replicator;
 
 class RpdsApiImpl : public RpdsApi,
                     Envoy::Config::SubscriptionBase<Replicator>,
-                    // TODO: should be storage::v3::Replicator
                     Logger::Loggable<Logger::Id::rr_manager> {
 public:
-  RpdsApiImpl(const std::string &rpds_config,
+  RpdsApiImpl(const std::string &rpds_resource_locator,
+              envoy::config::core::v3::ConfigSource& rpds_config,
               std::shared_ptr<Storage> &&str_manager,
               Upstream::ClusterManager &cm,
               Init::Manager &init_manager, Stats::Scope &scope,
@@ -77,7 +78,8 @@ class StorageImpl : public Storage,
                     public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
 public:
   StorageImpl(Event::Dispatcher& dispatcher,
-              const envoy::config::core::v3::ConfigSource& rpds_config,
+              Server::Instance& server,
+              const envoy::config::storage::v3::Storage& storage_config,
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
 
@@ -138,6 +140,7 @@ private:
   void populateRequestOption();
 
   Event::Dispatcher& dispatcher_;
+  Server::Instance& server_;
 
   // need target cluster names
   // subscription from xDS?
