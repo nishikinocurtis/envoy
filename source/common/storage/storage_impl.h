@@ -36,7 +36,7 @@ class RpdsApiImpl : public RpdsApi,
                     // TODO: should be storage::v3::Replicator
                     Logger::Loggable<Logger::Id::rr_manager> {
 public:
-  RpdsApiImpl(const envoy::config::core::v3::ConfigSource &rpds_config,
+  RpdsApiImpl(const std::string &rpds_config,
               std::shared_ptr<Storage> &&str_manager,
               Upstream::ClusterManager &cm,
               Init::Manager &init_manager, Stats::Scope &scope,

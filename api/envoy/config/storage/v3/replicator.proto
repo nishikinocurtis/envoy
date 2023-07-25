@@ -2,7 +2,21 @@ syntax = "proto3";
 
 package envoy.config.storage.v3;
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+
+import "envoy/annotations/deprecation.proto";
+import "udpa/annotations/security.proto";
+import "udpa/annotations/status.proto";
+import "udpa/annotations/versioning.proto";
+import "validate/validate.proto";
+
+option java_package = "io.envoyproxy.envoy.config.storage.v3";
+option java_outer_classname = "ReplicatorProto";
+option java_multiple_files = true;
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
+
 message Replicator {
-  string name = 1;
-  repeated string cluster_names = 2;
+  // to be included in DiscoveryResponse.resources
+  repeated string target_cluster_names = 2;
 }

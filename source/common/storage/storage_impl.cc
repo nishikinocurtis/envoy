@@ -48,7 +48,7 @@ Buffer::Instance &RawBufferStateObject::getObject() {
   return *buf_;
 }
 
-RpdsApiImpl::RpdsApiImpl(const envoy::config::core::v3::ConfigSource &rpds_config,
+RpdsApiImpl::RpdsApiImpl(const std::string &rpds_config,
                          std::shared_ptr<Storage> &&str_manager,
                          Upstream::ClusterManager &cm,
                          Init::Manager &init_manager, Stats::Scope &scope,

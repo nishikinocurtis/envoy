@@ -11,10 +11,12 @@ import "envoy/config/core/v3/event_service_config.proto";
 import "envoy/config/core/v3/extension.proto";
 import "envoy/config/core/v3/resolver.proto";
 import "envoy/config/core/v3/socket_option.proto";
+import "envoy/config/failover/v3/failover.proto";
 import "envoy/config/listener/v3/listener.proto";
 import "envoy/config/metrics/v3/stats.proto";
 import "envoy/config/overload/v3/overload.proto";
 import "envoy/config/rerouting/v3/rerouting.proto";
+import "envoy/config/storage/v3/storage.proto";
 import "envoy/config/trace/v3/http_tracer.proto";
 import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
 import "envoy/type/v3/percent.proto";
@@ -42,7 +44,7 @@ option (udpa.annotations.file_status).package_version_status = ACTIVE;
 // <config_overview_bootstrap>` for more detail.
 
 // Bootstrap :ref:`configuration overview <config_overview_bootstrap>`.
-// [#next-free-field: 39]
+// [#next-free-field: 41]
 message Bootstrap {
   option (udpa.annotations.versioning).previous_message_type =
       "envoy.config.bootstrap.v2.Bootstrap";
@@ -366,6 +368,12 @@ message Bootstrap {
   // bool rerouting specifies if the rerouting server is activated
   // int port gives the port number
   rerouting.v3.Rerouting rerouting = 38;
+
+  // This defines the Storage manager configuration
+  storage.v3.Storage storage = 39;
+
+  // This defines the Failover manager configuration
+  failover.v3.Failover failover = 40;
 }
 
 // Administration interface :ref:`operations documentation

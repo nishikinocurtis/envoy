@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package envoy.config.storage.v3;
+
+import "envoy/config/core/v3/config_source.proto";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
+
+import "udpa/annotations/migrate.proto";
+import "udpa/annotations/security.proto";
+import "udpa/annotations/status.proto";
+import "udpa/annotations/versioning.proto";
+import "validate/validate.proto";
+
+option java_package = "io.envoyproxy.envoy.config.storage.v3";
+option java_outer_classname = "StorageProto";
+option java_multiple_files = true;
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
+
+
+message Storage {
+  option (udpa.annotations.versioning).previous_message_type = "None";
+
+  // the following section describes how the Storage Module get information about
+  // where it should replicate the states to.
+
+  // make it AGGREGATED_DELTA_GRPC
+  // make resource_type ReplicationTarget
+  core.v3.ConfigSource rpds_config = 1;
+
+  // xdstp://rpdsxxx
+  string rpds_resource_locator = 2;
+
+  // the following section describes how the Storage Module configs itself.
+  uint32 default_states_ttl_second = 3;
+}
