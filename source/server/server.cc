@@ -51,6 +51,7 @@
 #include "source/common/singleton/manager_impl.h"
 #include "source/common/stats/thread_local_store.h"
 #include "source/common/stats/timespan_impl.h"
+#include "source/common/storage/storage_impl.h"
 #include "source/common/upstream/cluster_manager_impl.h"
 #include "source/common/version/version.h"
 #include "source/server/configuration_impl.h"
@@ -728,20 +729,27 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                     lds_resources_locator.get());
   }
 
-  // after xDS subscription initialized start our reconfig server to pierce the update into subscripti
-  if (bootstrap_.dynamic_resources().has_lds_config() ||
-      !bootstrap_.dynamic_resources().lds_resources_locator().empty()) {
+  // after xDS subscription initialized start our reconfig server to pierce the update into subscription
+  if (bootstrap_.rerouting().rerouting()) {
     auto lds_api_cb = listener_manager_->getLdsApiHandle();
     auto lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
     // TODO: waiting for ConnManager interface implementation to be instantiated.
     rr_manager_ = std::make_unique<FastReconfigServerImpl>(*this,
                                                            true,
                                                            std::move(lds_api_cb),
-                                                           std::move(lds_resource_decoder));
+                                                           std::move(lds_resource_decoder),
+                                                           States::StorageSingleton::getOrCreateInstance());
   }
 
   if (rr_manager_) {
-    // start listening.
+    // TODO: start listening. modify admin() to ft() here, add proto for initial config.
+    auto rr_address =
+        std::make_shared<const Network::Address::Ipv4Instance>("0.0.0.0",
+                                                               (uint32_t)bootstrap_.rerouting().port());
+    rr_manager_->bindHTTPListeningSocket(rr_address,
+                                         initial_config.admin().socketOptions(),
+                                         stats_store_.createScope("listener.rr."));
+    rr_manager_->registerListenerToConnectionHandler(handler_.get());
   }
 
   // We have to defer RTDS initialization until after the cluster manager is

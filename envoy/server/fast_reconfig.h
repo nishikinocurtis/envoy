@@ -34,6 +34,10 @@ namespace Server {
 class FastReconfigServer {
 public:
     virtual ~FastReconfigServer() = default;
+
+    virtual void bindHTTPListeningSocket(Network::Address::InstanceConstSharedPtr address,
+                                         const Network::Socket::OptionsSharedPtr &socket_options,
+                                         Stats::ScopeSharedPtr &&listener_scope) PURE;
   /*
    * Provide a fake stream manner GrpcMessage for one time
    * Reconfig Processing

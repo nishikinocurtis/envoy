@@ -115,7 +115,7 @@ public:
 
   void bindHTTPListeningSocket(Network::Address::InstanceConstSharedPtr address,
                                const Network::Socket::OptionsSharedPtr& socket_options,
-                               Stats::ScopeSharedPtr&& listener_scope);
+                               Stats::ScopeSharedPtr&& listener_scope) override;
 
   // Http::ConnectionManagerConfig
   const Http::RequestIDExtensionSharedPtr& requestIDExtension() override {

@@ -93,7 +93,7 @@ void FailoverManagerImpl::registerCriticalConnection(const std::string &downstre
 }
 
 void FailoverManagerImpl::registerPreSelectedRecoveryTarget(const std::string &target) {
-  uint32_t ttl_arg = 10;
+  uint32_t ttl_arg = 100; // need configuration
   if (pre_selection_recovery_ != std::nullopt) {
     // cancel timer first.
     pre_selection_ttl_->disableTimer();
