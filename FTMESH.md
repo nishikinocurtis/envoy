@@ -99,12 +99,28 @@ record content-length and x-replicate-length. depend on configuration, drop the 
 
 ### Feature fixing
 
-- [ ] Failover Manager internal logics
+- [x] Failover Manager internal logics
 - [ ] debug logs + variable printing at all functions
 - [ ] socket feedback mechanism and configuration format
 - [ ] critical connection maintaining
 
 ### Micro benchmarking
 
+- [ ] generate listener filter config and test out runtime re-routing
+- [ ] generate http request workload with designated headers and contents, test time
+- [ ] generate failure signal with fixed resource id and fixed target and test delivery time
+
+prioritized implementations:
+
+- rr_config handler
+
+- states_replication_filter
+
+- onFailure signal handler
+
+less prioritized implementations before poster:
+
+- failover manager(which connects to health checker)
+- rpds and rcds(we don't do dynamic update currently)
 
 
