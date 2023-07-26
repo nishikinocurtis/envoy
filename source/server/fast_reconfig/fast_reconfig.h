@@ -31,6 +31,10 @@
 namespace Envoy {
 namespace Server {
 
+class FastReconfigServerInternalAddressConfig : public Http::InternalAddressConfig {
+  bool isInternalAddress(const Network::Address::Instance&) const override { return false; }
+};
+
 class FastReconfigServerImpl : public FastReconfigServer,
                                public Network::FilterChainManager,
                                public Network::FilterChainFactory,
@@ -252,6 +256,47 @@ private:
     absl::string_view name() const override { return "rr_manager"; }
   };
 
+  struct NullRouteConfigProvider : public Router::RouteConfigProvider {
+    NullRouteConfigProvider(TimeSource& time_source);
+
+    // Router::RouteConfigProvider
+    Rds::ConfigConstSharedPtr config() const override { return config_; }
+    const absl::optional<ConfigInfo>& configInfo() const override { return config_info_; }
+    SystemTime lastUpdated() const override { return time_source_.systemTime(); }
+    void onConfigUpdate() override {}
+    Router::ConfigConstSharedPtr configCast() const override { return config_; }
+    void requestVirtualHostsUpdate(const std::string&, Event::Dispatcher&,
+                                   std::weak_ptr<Http::RouteConfigUpdatedCallback>) override {}
+
+    Router::ConfigConstSharedPtr config_;
+    absl::optional<ConfigInfo> config_info_;
+    TimeSource& time_source_;
+  };
+
+  struct NullScopedRouteConfigProvider : public Config::ConfigProvider {
+    NullScopedRouteConfigProvider(TimeSource &time_source)
+        : config_(std::make_shared<const Router::NullScopedConfigImpl>()),
+          time_source_(time_source) {}
+
+    ~NullScopedRouteConfigProvider() override = default;
+
+    // Config::ConfigProvider
+    SystemTime lastUpdated() const override { return time_source_.systemTime(); }
+
+    const Protobuf::Message *getConfigProto() const override { return nullptr; }
+
+    std::string getConfigVersion() const override { return ""; }
+
+    ConfigConstSharedPtr getConfig() const override { return config_; }
+
+    ApiType apiType() const override { return ApiType::Full; }
+
+    ConfigProtoVector getConfigProtos() const override { return {}; }
+
+    Router::ScopedConfigConstSharedPtr config_;
+    TimeSource &time_source_;
+  };
+
   Server::Instance& server_;
   NullOverloadManager null_overload_manager_;
   const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
@@ -275,7 +320,7 @@ private:
   const absl::optional<std::string> scheme_{};
   Http::ConnectionManagerStats stats_;
   Http::ConnectionManagerTracingStats tracing_stats_;
-  const AdminInternalAddressConfig internal_address_config_;
+  const FastReconfigServerInternalAddressConfig internal_address_config_;
   std::vector<Http::ClientCertDetailsType> set_current_client_cert_details_;
   absl::optional<std::string> user_agent_;
   Http::Http1Settings http1_settings_;
