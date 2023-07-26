@@ -5,7 +5,10 @@
 
 
 #include "fast_reconfig.h"
+#include "source/common/http/conn_manager_utility.h"
 #include "source/common/network/listen_socket_impl.h"
+
+#include "source/extensions/request_id/uuid/config.h"
 
 namespace Envoy {
 namespace Server {
@@ -40,15 +43,20 @@ FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
                                           std::move(listener_reconfig_resource_decoder)),
       replicate_recover_handler_instance_(server_,
                                           std::move(storage_manager)),
-      ignore_global_conn_limit_(ignore_global_conn_limit)
-                                               {
-  handler_registry_["/rr_listener"] =
-      registerHandler(HANDLER_WRAPPER(listener_reconfig_handler_instance_.pushNewListenersHandler));
-  handler_registry_["/replicate_single"] =
-      registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onStatesReplication));
-  handler_registry_["/failure_single"] =
-      registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onFailureRecovery));
-                                               }
+      handler_registry_({
+        {"/rr_listener", registerHandler(HANDLER_WRAPPER(listener_reconfig_handler_instance_.pushNewListenersHandler))},
+        {"/replicate_single", registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onStatesReplication))},
+        {"/failure_single", registerHandler(HANDLER_WRAPPER(replicate_recover_handler_instance_.onFailureRecovery))}}),
+      ignore_global_conn_limit_(ignore_global_conn_limit),
+      request_id_extension_(Extensions::RequestId::UUIDRequestIDExtension::defaultInstance(
+        server_.api().randomGenerator())), date_provider_(server.dispatcher().timeSource()),
+      route_config_provider_(server.timeSource()),
+      scoped_route_config_provider_(server.timeSource()),
+      stats_(Http::ConnectionManagerImpl::generateStats(
+          "http.rr.", *server_.stats().rootScope())),
+      tracing_stats_(Http::ConnectionManagerImpl::generateTracingStats("http.rr.",
+                                                                       *no_op_store_.rootScope()))
+{ }
 
 GrpcMessageImpl::GrpcMessageImpl() {
   headers_ = Http::ResponseHeaderMapImpl::create();

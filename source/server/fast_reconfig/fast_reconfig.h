@@ -16,6 +16,7 @@
 #include "source/common/http/conn_manager_impl.h"
 #include "source/common/http/header_map_impl.h"
 #include "source/common/http/date_provider_impl.h"
+#include "source/common/stats/isolated_store_impl.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 #include "source/server/fast_reconfig/listener_handler.h"
 #include "source/server/fast_reconfig/recover_handler.h"
@@ -319,6 +320,7 @@ private:
   NullScopedRouteConfigProvider scoped_route_config_provider_;
   const absl::optional<std::string> scheme_{};
   Http::ConnectionManagerStats stats_;
+  Stats::IsolatedStoreImpl no_op_store_;
   Http::ConnectionManagerTracingStats tracing_stats_;
   const FastReconfigServerInternalAddressConfig internal_address_config_;
   std::vector<Http::ClientCertDetailsType> set_current_client_cert_details_;
