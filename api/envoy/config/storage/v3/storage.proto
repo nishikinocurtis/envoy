@@ -17,14 +17,14 @@ import "validate/validate.proto";
 option java_package = "io.envoyproxy.envoy.config.storage.v3";
 option java_outer_classname = "StorageProto";
 option java_multiple_files = true;
+option go_package = "github.com/envoyproxy/go-control-plane/envoy/config/storage/v3;storagev3";
 option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
+// the following section describes how the Storage Module get information about
+// where it should replicate the states to.
 
 message Storage {
   option (udpa.annotations.versioning).previous_message_type = "None";
-
-  // the following section describes how the Storage Module get information about
-  // where it should replicate the states to.
 
   // make it AGGREGATED_DELTA_GRPC
   // make resource_type ReplicationTarget

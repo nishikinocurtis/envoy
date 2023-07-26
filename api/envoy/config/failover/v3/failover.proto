@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package envoy.config.failover.v3;
+
+import "envoy/config/core/v3/config_source.proto";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
+
+import "udpa/annotations/migrate.proto";
+import "udpa/annotations/security.proto";
+import "udpa/annotations/status.proto";
+import "udpa/annotations/versioning.proto";
+import "validate/validate.proto";
+
+option java_package = "io.envoyproxy.envoy.config.failover.v3";
+option java_outer_classname = "FailoverProto";
+option java_multiple_files = true;
+option go_package = "github.com/envoyproxy/go-control-plane/envoy/config/failover/v3;failoverv3";
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
+
+// the following section describes how the Failover Module get information about
+// where it should issue the failure signal to.
+
+message Failover {
+  option (udpa.annotations.versioning).previous_message_type = "None";
+
+  // make it AGGREGATED_DELTA_GRPC
+  // make resource_type ReplicationTarget
+  core.v3.ConfigSource rcds_config = 1;
+
+  // xdstp://rcdsxxx
+  string rcds_resource_locator = 2;
+
+  // if we don't receive update from Control Plane in {$ttl} second, discard the target.
+  // and then consult Control Plane on failure.
+  uint32 default_target_ttl_second = 3;
+
+  CriticalServices administrated_critical_services = 4;
+}
+
+message CriticalServices {
+  // merge-able pod_name set which supports
+  repeated string pod_names = 1;
+
+  repeated string cluster_names = 2;
+}
+
+message FailoverTarget {
+  // this is not repeated as we should only have one fast-recovery target to avoid selection
+  string pod_name = 1;
+}
