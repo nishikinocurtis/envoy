@@ -197,6 +197,19 @@ public:
 using ResetHeaderParserSharedPtr = std::shared_ptr<ResetHeaderParser>;
 
 /**
+ * Route level StatesReplicationFilter policy
+ */
+class StatesReplicationPolicy : public RouteSpecificFilterConfig {
+public:
+  virtual ~StatesReplicationPolicy() = default;
+
+  /** currently the only configurable field
+   * @return bool if StatesReplicationFilter is enabled on this route.
+   */
+  virtual bool enabled() const PURE;
+};
+
+/**
  * Route level retry policy.
  */
 class RetryPolicy {
