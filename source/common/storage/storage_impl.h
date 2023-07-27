@@ -9,10 +9,15 @@
 #include "envoy/event/timer.h"
 #include "envoy/server/instance.h"
 
+#include "envoy/service/discovery/v3/discovery.pb.h"
+#include "envoy/config/storage/v3/storage.pb.h"
+#include "envoy/config/storage/v3/replicator.pb.h"
+
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
 #include "source/common/init/target_impl.h"
 #include "source/common/protobuf/protobuf.h"
+#include "source/common/config/xds_resource.h"
 
 namespace Envoy {
 namespace States {
@@ -36,12 +41,12 @@ class RpdsApiImpl : public RpdsApi,
                     Envoy::Config::SubscriptionBase<Replicator>,
                     Logger::Loggable<Logger::Id::rr_manager> {
 public:
-  RpdsApiImpl(const std::string &rpds_resource_locator,
-              envoy::config::core::v3::ConfigSource& rpds_config,
+  RpdsApiImpl(const xds::core::v3::ResourceLocator* rpds_resource_locator,
+              const envoy::config::core::v3::ConfigSource& rpds_config,
               std::shared_ptr<Storage> &&str_manager,
               Upstream::ClusterManager &cm,
               Init::Manager &init_manager, Stats::Scope &scope,
-              ProtobufMessage::ValidationVisitor validation_visitor);
+              ProtobufMessage::ValidationVisitor& validation_visitor);
 
   // States::RpdsApi
   std::string versionInfo() const override { return version_info_; }
@@ -62,7 +67,7 @@ private:
                       const Protobuf::RepeatedPtrField<std::string>& removed_resources,
                       const std::string& system_version_info) override;
   void onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
-                            const EnvoyException* e) override;
+                            const EnvoyException*) override;
 
   Config::OpaqueResourceDecoderSharedPtr getResourceDecoder() { return resource_decoder_; }
 
@@ -75,10 +80,12 @@ private:
 };
 
 class StorageImpl : public Storage,
-                    public Http::AsyncClient::Callbacks { // need to be HttpAsyncClientCallbacks
+                    public Http::AsyncClient::Callbacks,
+                    Logger::Loggable<Logger::Id::rr_manager> { // need to be HttpAsyncClientCallbacks
 public:
   StorageImpl(Event::Dispatcher& dispatcher,
               Server::Instance& server,
+              const xds::core::v3::ResourceLocator* rpds_resource_locator,
               const envoy::config::storage::v3::Storage& storage_config,
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
@@ -89,7 +96,7 @@ public:
   void replicate(const std::string& resource_id) override;
 
   // Should support packed transmission
-  void replicate(std::vector<const std::string &> resource_ids) override;
+  void replicate(std::vector<std::string>& resource_ids) override;
 
   // Packed transmission in another dimension
   void replicateSvc(const std::string& service_id) override;
@@ -97,27 +104,30 @@ public:
   void recover(const std::string& resource_id) override;
 
   // Consider supporting packed transmission.
-  void recoverPacked(std::vector<const std::string &> resource_ids) override;
+  void recoverPacked(std::vector<std::string>&) override {}
 
   // TODO: consider if we can pack up this.
-  void recoverSvc(const std::string& service_id) override;
+  void recoverSvc(const std::string&) override {}
 
   void deactivate(const std::string& resource_id) override;
 
-  void deactivate(std::vector<const std::string &> resource_ids) override;
+  void deactivate(std::vector<std::string>&) override {}
 
-  void deactivateSvc(const std::string& service_id) override;
-
-  void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) override;
+  void deactivateSvc(const std::string&) override {}
 
   void addTargetCluster(const std::string& cluster) override;
   void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override;
   void removeTargetCluster(const std::string& cluster) override;
 
+  void beginTargetUpdate() override {}
+  void endTargetUpdate() override {}
+
+  // deprecated, now registered as lambda when write().
+  void timedCleanUp() override {}
   // Http::AsyncClient::Callbacks
-  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override;
-  void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override;
-  void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override;
+  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override {}
+  void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override {}
+  void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
 
 private:
 
@@ -164,11 +174,25 @@ public:
   StorageSingleton& operator=(const StorageSingleton) = delete;
 
   static std::shared_ptr<Storage> getOrCreateInstance(
+      Event::Dispatcher& dispatcher,
+      Server::Instance& server,
+      const std::string& rpds_resource_locator,
+      const envoy::config::storage::v3::Storage& storage_config,
+      const LocalInfo::LocalInfo& local_info,
+      Upstream::ClusterManager& cm
       // with necessary arguments
       // call this from server.cc to initialize.
       ) {
     if (ptr_ == nullptr) {
-      ptr_ = new StorageImpl(); //arguments
+      std::unique_ptr<xds::core::v3::ResourceLocator> rpds_resource_locator_ptr;
+      if (!rpds_resource_locator.empty()) {
+        rpds_resource_locator_ptr =
+            std::make_unique<xds::core::v3::ResourceLocator>(Config::XdsResourceIdentifier::decodeUrl(
+                rpds_resource_locator));
+      }
+      ptr_ = std::make_shared<StorageImpl>(dispatcher, server,
+                                           rpds_resource_locator_ptr.get(), storage_config, local_info, cm); //arguments
+      return ptr_;
     } else {
       return ptr_;
     }

@@ -27,7 +27,12 @@ public:
                                  Buffer::Instance& response);
 
 private:
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wunused-private-field"
   Server::Instance& server_;
+#pragma clang diagnostic pop
+
   std::shared_ptr<States::Storage> storage_ptr_;
 
 };

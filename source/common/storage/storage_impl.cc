@@ -2,7 +2,7 @@
 // Created by qiutong on 7/10/23.
 //
 
-#include "storage_impl.h"
+#include "source/common/storage/storage_impl.h"
 
 #include "envoy/http/codes.h"
 
@@ -11,12 +11,15 @@
 #include "source/common/buffer/buffer_impl.h"
 #include "source/common/http/message_impl.h"
 #include "source/common/http/header_map_impl.h"
+#include "source/common/config/utility.h"
+#include "source/common/protobuf/utility.h"
 
 
 namespace Envoy {
 namespace States {
 
-RawBufferStateObject::RawBufferStateObject(StorageMetadata &metadata) : metadata_(metadata) {
+RawBufferStateObject::RawBufferStateObject(StorageMetadata &metadata) {
+  metadata_ = metadata;
   buf_ = std::make_unique<Buffer::OwnedImpl>();
 }
 
@@ -48,19 +51,19 @@ Buffer::Instance &RawBufferStateObject::getObject() {
   return *buf_;
 }
 
-RpdsApiImpl::RpdsApiImpl(const std::string &rpds_resource_locator,
-                         envoy::config::core::v3::ConfigSource& rpds_config,
+RpdsApiImpl::RpdsApiImpl(const xds::core::v3::ResourceLocator* rpds_resource_locator,
+                         const envoy::config::core::v3::ConfigSource& rpds_config,
                          std::shared_ptr<Storage> &&str_manager,
                          Upstream::ClusterManager &cm,
                          Init::Manager &init_manager, Stats::Scope &scope,
-                         ProtobufMessage::ValidationVisitor validation_visitor)
-                         : Config::SubscriptionBase<Replicator>(validation_visitor, "name"),
+                         ProtobufMessage::ValidationVisitor& validation_visitor)
+                         : Envoy::Config::SubscriptionBase<Replicator>(validation_visitor, "name"),
                            str_manager_(std::move(str_manager)), scope_(scope.createScope("storage.rpds.")),
                            cm_(cm), init_target_("RPDS", [this]() { subscription_->start({}); }) {
   // create subscription, must give both resource_locator and rpds_config.
   const auto resource_name = getResourceName();
-  subscription_ = cm.subscriptionFactory().collectionSubscriptionFromUrl(
-      rpds_resource_locator, rpds_config, resource_name, *scope_, *this, resource_decoder_);
+  subscription_ = cm_.subscriptionFactory().collectionSubscriptionFromUrl(
+      *rpds_resource_locator, rpds_config, resource_name, *scope_, *this, resource_decoder_);
 
   init_manager.add(init_target_);
 }
@@ -73,13 +76,15 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
   auto new_target_list = std::make_unique<std::list<std::string>>();
 
   str_manager_->beginTargetUpdate();
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
   for (const auto& target_to_add : resources) {
     std::string target;
+
     // cast to target
     new_target_list->push_back(target);
   }
-
+#pragma clang diagnostic pop
   str_manager_->shiftTargetClusters(std::move(new_target_list));
 
   str_manager_->endTargetUpdate();
@@ -114,7 +119,7 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
 }
 
 void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason reason,
-                                       const Envoy::EnvoyException *e) {
+                                       const Envoy::EnvoyException*) {
   // logic adopted from LdsApiImpl.
   ASSERT(Envoy::Config::ConfigUpdateFailureReason::ConnectionFailure != reason);
   ENVOY_LOG(debug, "RpdsAPI config update failed");
@@ -122,11 +127,12 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
 }
 
 StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server,
+                         const xds::core::v3::ResourceLocator* rpds_resource_locator,
                          const envoy::config::storage::v3::Storage& storage_config, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm)
                          : dispatcher_(dispatcher), server_(server),
-                         rpds_api_(storage_config.rpdsConfig(), shared_from_this(), cm, server_.initManager(),
-                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor()),
+                         rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
+                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
                          local_info_(local_info), cm_(cm) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
 }

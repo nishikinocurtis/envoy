@@ -30,12 +30,13 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
 
   std::vector<std::string> resource_ids = absl::StrSplit(admin_stream.getRequestBody()->toString(), '\n');
   for (const std::string& resource_id : resource_ids) {
-    bool result = false; // this should be returned from recover().
+    // bool result = false; // this should be returned from recover().
     storage_ptr_->recover(resource_id);
   }
 
   response.add("socket data here");
   // populate headers
+  response_headers.setCopy(Http::LowerCaseString("x-ftmesh-recovered"), "true");
 
   return Http::Code::OK;
 }
@@ -57,6 +58,7 @@ Http::Code ReplicateRecoverHandler::onStatesReplication(Envoy::Server::AdminStre
   const auto &headers = admin_stream.getRequestHeaders();
   States::StorageMetadata metadata;
   // parse header into metadata, or consider packed implementation.
+  metadata.resource_id_ = headers.getByKey("x-ftmesh-resource-id").value();
   auto state_obj = std::make_shared<States::RawBufferStateObject>(metadata);
 
   // do a const _cast here to avoid copy: change the request body to non-const.
@@ -64,6 +66,7 @@ Http::Code ReplicateRecoverHandler::onStatesReplication(Envoy::Server::AdminStre
 
   storage_ptr_->write(std::move(state_obj));
 
+  response.add("replicated");
   response_headers.setEnvoyUpstreamServiceTime(0ll);
 
   return Http::Code::OK;

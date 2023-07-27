@@ -15,8 +15,6 @@
 namespace Envoy {
 namespace Server {
 
-using LdsApiImplPtr = std::weak_ptr<LdsApiImpl>;
-
 // we need something that is a SubscriptionCallback and can get resource_decoder from.
 
 class ListenerHandler : public ReconfigHandlerBase,

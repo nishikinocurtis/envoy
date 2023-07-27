@@ -15,7 +15,6 @@
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
 #include "source/common/init/target_impl.h"
-#include "source/server/fast_reconfig/listener_handler.h"
 
 namespace Envoy {
 namespace Server {
@@ -45,7 +44,7 @@ public:
   }
 
 private:
-  friend class ListenerHandler;
+  // friend class ListenerHandler;
   // Config::SubscriptionCallbacks
   void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
                       const std::string& version_info) override;

@@ -281,7 +281,7 @@ public:
    * @param rhs the buffer instance to be truncated.
    * @param position the starting position in rhs.
    */
-  virtual void truncateOut(Instance& rhs, uint64_t position) { }
+  virtual void truncateOut(Instance&, uint64_t) { }
   // do nothing for a fallback implementation, don't require other modules to implement this.
 
   /**

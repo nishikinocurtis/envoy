@@ -106,7 +106,7 @@ public:
   virtual void replicate(const std::string& resource_id) PURE;
 
   // Should support packed transmission.
-  virtual void replicate(std::vector<const std::string &> resource_ids) PURE;
+  virtual void replicate(std::vector<std::string>& resource_ids) PURE;
 
   // TODO: consider if we can pack up this.
   virtual void replicateSvc(const std::string& service_id) PURE;
@@ -127,7 +127,7 @@ public:
   virtual void recover(const std::string& resource_id) PURE;
 
   // Not supporting packed transmission, just for calling convenience.
-  virtual void recoverPacked(std::vector<const std::string &> resource_ids) PURE;
+  virtual void recoverPacked(std::vector<std::string>& resource_ids) PURE;
 
   // TODO: consider if we can pack up this.
   virtual void recoverSvc(const std::string& service_id) PURE;
@@ -139,11 +139,9 @@ public:
    */
   virtual void deactivate(const std::string& resource_id) PURE;
 
-  virtual void deactivate(std::vector<const std::string &> resource_ids) PURE;
+  virtual void deactivate(std::vector<std::string>& resource_ids) PURE;
 
   virtual void deactivateSvc(const std::string& service_id) PURE;
-
-  virtual void createRpdsApi(const envoy::config::core::v3::ConfigSource& rpds_config) PURE;
 
   virtual void beginTargetUpdate() PURE;
 

@@ -301,8 +301,7 @@ struct ExtensionConfigDiscoveryStats {
  */
 class FilterConfigSubscription
     : Config::SubscriptionBase<envoy::config::core::v3::TypedExtensionConfig>,
-      Logger::Loggable<Logger::Id::filter>,
-      public std::enable_shared_from_this<FilterConfigSubscription> {
+      Logger::Loggable<Logger::Id::filter> {
 public:
   FilterConfigSubscription(const envoy::config::core::v3::ConfigSource& config_source,
                            const std::string& filter_config_name,

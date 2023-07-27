@@ -130,7 +130,7 @@ void FilterConfigSubscription::onConfigUpdate(
                      std::shared_ptr<Cleanup> cleanup) {
         provider->onConfigUpdate(*last->config_, last->version_info_, [cleanup] {});
       },
-      [me = shared_from_this()]() { me->updateComplete(); });
+      [this]() { this->updateComplete(); });
   // The filter configs are created and published to worker queues at this point, so it
   // is safe to mark the subscription as ready and publish the warmed parent resources.
   ENVOY_LOG(debug, "Updated filter config {} created, warming done", filter_config_name_);
@@ -149,7 +149,7 @@ void FilterConfigSubscription::onConfigUpdate(
         [](DynamicFilterConfigProviderImplBase* provider, std::shared_ptr<Cleanup> cleanup) {
           provider->onConfigRemoved([cleanup] {});
         },
-        [me = shared_from_this()]() { me->updateComplete(); });
+        [this]() { this->updateComplete(); });
   } else if (!added_resources.empty()) {
     ASSERT(added_resources.size() == 1);
     onConfigUpdate(added_resources, added_resources[0].get().version());
