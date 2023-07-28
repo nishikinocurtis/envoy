@@ -16,6 +16,9 @@
 #include "source/common/http/conn_manager_impl.h"
 #include "source/common/http/header_map_impl.h"
 #include "source/common/http/date_provider_impl.h"
+#include "source/common/http/default_server_string.h"
+#include "source/common/http/http1/codec_stats.h"
+#include "source/common/http/http2/codec_stats.h"
 #include "source/common/stats/isolated_store_impl.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 #include "source/server/fast_reconfig/listener_handler.h"
@@ -303,6 +306,8 @@ private:
   const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
   ListenerHandler listener_reconfig_handler_instance_;
   ReplicateRecoverHandler replicate_recover_handler_instance_;
+  Http::Http1::CodecStats::AtomicPtr http1_codec_stats_;
+  Http::Http2::CodecStats::AtomicPtr http2_codec_stats_;
   Network::SocketSharedPtr socket_;
   std::map<std::string, HandlerRegistrationItem> handler_registry_;
   std::vector<Network::ListenSocketFactoryPtr> socket_factories_;
@@ -313,6 +318,8 @@ private:
   const absl::optional<std::chrono::milliseconds> null_access_log_flush_interval_;
   const bool flush_access_log_on_new_request_ = false;
   Http::SlowDateProviderImpl date_provider_;
+  const uint32_t max_request_headers_kb_{Http::DEFAULT_MAX_REQUEST_HEADERS_KB};
+  const uint32_t max_request_headers_count_{Http::DEFAULT_MAX_HEADERS_COUNT};
   absl::optional<std::chrono::milliseconds> idle_timeout_;
   absl::optional<std::chrono::milliseconds> max_connection_duration_;
   absl::optional<std::chrono::milliseconds> max_stream_duration_;

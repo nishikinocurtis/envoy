@@ -11,7 +11,9 @@
 
 #include "envoy/service/discovery/v3/discovery.pb.h"
 #include "envoy/config/storage/v3/storage.pb.h"
+#include "envoy/config/storage/v3/storage.pb.validate.h"
 #include "envoy/config/storage/v3/replicator.pb.h"
+#include "envoy/config/storage/v3/replicator.pb.validate.h"
 
 #include "source/common/common/logger.h"
 #include "source/common/config/subscription_base.h"
@@ -96,10 +98,10 @@ public:
   void replicate(const std::string& resource_id) override;
 
   // Should support packed transmission
-  void replicate(std::vector<std::string>& resource_ids) override;
+  void replicate(std::vector<std::string>&) override {}
 
   // Packed transmission in another dimension
-  void replicateSvc(const std::string& service_id) override;
+  void replicateSvc(const std::string&) override {}
 
   void recover(const std::string& resource_id) override;
 
@@ -115,9 +117,20 @@ public:
 
   void deactivateSvc(const std::string&) override {}
 
-  void addTargetCluster(const std::string& cluster) override;
-  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override;
-  void removeTargetCluster(const std::string& cluster) override;
+  void addTargetCluster(const std::string& cluster) override {
+    target_clusters_->push_back(cluster);
+  }
+  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override {
+    target_clusters_ = std::move(cluster_list);
+  }
+  void removeTargetCluster(const std::string& cluster) override {
+    for (auto iter = target_clusters_->begin(); iter != target_clusters_->end(); ++iter) {
+      if (!iter->compare(cluster)) {
+        target_clusters_->erase(iter);
+        break;
+      }
+    }
+  }
 
   void beginTargetUpdate() override {}
   void endTargetUpdate() override {}

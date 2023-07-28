@@ -730,22 +730,25 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
   }
 
   // after xDS subscription initialized start our reconfig server to pierce the update into subscription
-  if (bootstrap_.rerouting().rerouting()) {
+  if (bootstrap_.rerouting_endpoint().rerouting()) {
     auto lds_api_cb = listener_manager_->getLdsApiHandle();
     auto lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
     // TODO: waiting for ConnManager interface implementation to be instantiated.
-    rr_manager_ = std::make_unique<FastReconfigServerImpl>(*this,
-                                                           true,
-                                                           std::move(lds_api_cb),
-                                                           std::move(lds_resource_decoder),
-                                                           States::StorageSingleton::getOrCreateInstance());
+    rr_manager_ =
+        std::make_unique<FastReconfigServerImpl>(*this, true, std::move(lds_api_cb),
+                                                 std::move(lds_resource_decoder),
+                                                 States::StorageSingleton::getOrCreateInstance(
+                                                     *dispatcher_, *this,
+                                                     bootstrap_.storage_manager().rpds_resource_locator(),
+                                                     bootstrap_.storage_manager(), *local_info_,
+                                                     *config_.clusterManager()));
   }
 
   if (rr_manager_) {
     // TODO: start listening. modify admin() to ft() here, add proto for initial config.
     auto rr_address =
         std::make_shared<const Network::Address::Ipv4Instance>("0.0.0.0",
-                                                               (uint32_t)bootstrap_.rerouting().port());
+                                                               bootstrap_.rerouting_endpoint().port());
     rr_manager_->bindHTTPListeningSocket(rr_address,
                                          initial_config.admin().socketOptions(),
                                          stats_store_.createScope("listener.rr."));

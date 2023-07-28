@@ -104,7 +104,8 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
     str_manager_->removeTargetCluster(target_to_remove);
   }
 
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
   // std::vector<std::string> added_targets;
   for (const auto& target_to_add : added_resources) {
     std::string target;
@@ -112,7 +113,7 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
     // added_targets.push_back(target);
     str_manager_->addTargetCluster(target);
   }
-
+#pragma clang diagnostic pop
 
   // call the str_manager_->addTargetCluster, remember to drain current traffics.
   str_manager_->endTargetUpdate();
@@ -264,6 +265,8 @@ Http::AsyncClient::Request* StorageImpl::makeHttpCall(
 
   return thread_local_cluster->httpAsyncClient().send(std::move(message), callbacks, options);
 }
+
+std::shared_ptr<Storage> StorageSingleton::ptr_ = nullptr;
 
 }
 }

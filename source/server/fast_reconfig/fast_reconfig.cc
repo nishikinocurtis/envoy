@@ -30,6 +30,9 @@ void FastReconfigServerImpl::bindHTTPListeningSocket(Network::Address::InstanceC
 using GrpcMessageImpl = FastReconfigServerImpl::GrpcMessageImpl;
 using GrpcRequestProcessorImpl = FastReconfigServerImpl::GrpcRequestProcessorImpl;
 
+FastReconfigServerImpl::NullRouteConfigProvider::NullRouteConfigProvider(TimeSource& time_source)
+    : config_(new Router::NullConfigImpl()), time_source_(time_source) {}
+
 FastReconfigServerImpl::FastReconfigServerImpl(Server::Instance& server,
                                                bool ignore_global_conn_limit,
                                                SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
@@ -84,16 +87,19 @@ FastReconfigServer::GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndAppl
   // get request path
   // fetch factory from registry
   // apply factory with admin_stream, and return the processor.
-  auto iter = handler_registry_.find("/rr_listener");
+  std::string path_and_query{admin_stream.getRequestHeaders().getPathValue().data()};
+
+  auto iter = handler_registry_.find(path_and_query);
   if (iter != handler_registry_.end()) {
     return iter->second.processor_factory_(admin_stream);
   } else {
-
+    // we need a 404 handler
+    return nullptr;
   }
 }
 
 bool FastReconfigServerImpl::createNetworkFilterChain(Network::Connection &connection,
-                                                      const std::vector<Network::FilterFactoryCb> &filter_factories) {
+                                                      const std::vector<Network::FilterFactoryCb> &) {
   // adopted from AdminImpl
   connection.addReadFilter(Network::ReadFilterSharedPtr{new Http::ConnectionManagerImpl(
       *this, server_.drainManager(), server_.api().randomGenerator(), server_.httpContext(),
