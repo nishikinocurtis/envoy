@@ -504,6 +504,14 @@ envoy.filters.http.stateful_session:
   type_urls:
   - envoy.extensions.filters.http.stateful_session.v3.StatefulSession
   - envoy.extensions.filters.http.stateful_session.v3.StatefulSessionPerRoute
+envoy.filters.http.states_replication:
+  categories:
+  - envoy.filters.http
+  security_posture: unknown
+  status: alpha
+  type_urls:
+  - envoy.extensions.filters.http.states_replication.v3.StatesReplication
+  - envoy.extensions.filters.http.states_replication.v3.StatesReplicationPolicy
 envoy.filters.http.header_mutation:
   categories:
   - envoy.filters.http

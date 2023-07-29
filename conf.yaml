@@ -15,25 +15,25 @@ static_resources:
       - name: envoy.http_connection_manager
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-        stat_prefix: ingress_http
-        codec_type: AUTO
-        http_filters:
-        - name: envoy.extensions.filters.http.StatesReplication
-          typed_config:
-            "@type": type.googleapis.com/envoy.extensions.filters.http.states_replication.v3.StatesReplication
-        - name: envoy.filters.http.router
-          typed_config:
-            "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-        route_config:
-          name: local_route
-          virtual_hosts:
-            - name: local_service
-              domains: ["*"]
-              routes:
-              - match:
-                  prefix: "/"
-                route:
-                  cluster: cluster_0
+          stat_prefix: ingress_http
+          codec_type: AUTO
+          http_filters:
+          - name: envoy.extensions.filters.http.StatesReplication
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.states_replication.v3.StatesReplication
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          route_config:
+            name: local_route
+            virtual_hosts:
+              - name: local_service
+                domains: ["*"]
+                routes:
+                - match:
+                    prefix: "/"
+                  route:
+                    cluster: cluster_0
 
   clusters:
   - name: cluster_0

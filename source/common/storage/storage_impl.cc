@@ -128,14 +128,16 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
 }
 
 StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server,
-                         const xds::core::v3::ResourceLocator* rpds_resource_locator,
-                         const envoy::config::storage::v3::Storage& storage_config, const LocalInfo::LocalInfo &local_info,
+                         const xds::core::v3::ResourceLocator*,
+                         const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm)
                          : dispatcher_(dispatcher), server_(server),
-                         rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
-                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
+                         // rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
+                         //          *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
                          local_info_(local_info), cm_(cm) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+  ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
+
 }
 
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
