@@ -10,6 +10,7 @@
 #include "envoy/http/stream_reset_handler.h"
 
 #include "source/common/common/assert.h"
+#include "source/common/common/logger.h"
 #include "source/common/common/non_copyable.h"
 #include "source/common/common/utility.h"
 #include "source/common/event/libevent.h"
@@ -641,7 +642,8 @@ private:
  * Note that due to the internals of move(), OwnedImpl is not
  * compatible with non-OwnedImpl buffers.
  */
-class OwnedImpl : public LibEventInstance {
+class OwnedImpl : public LibEventInstance,
+                  Logger::Loggable<Logger::Id::rr_manager> {
 public:
   OwnedImpl();
   OwnedImpl(absl::string_view data);

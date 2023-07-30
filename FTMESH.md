@@ -123,4 +123,7 @@ less prioritized implementations before poster:
 - failover manager(which connects to health checker)
 - rpds and rcds(we don't do dynamic update currently)
 
-
+## Problem Note 07.29:
+    Dispatcher rejects to create non-thread-safe timer
+    Consider creating a dispatcher for Storage usage, which check the to-be-deleted queue
+    at least one time per second, and create timer, and mount the timer to the dict

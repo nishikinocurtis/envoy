@@ -140,7 +140,7 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
 
 }
 
-void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
+void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) {
   StorageMetadata metadata = obj->metadata();
 
   // decide update or create
@@ -162,7 +162,7 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj) {
   // register new timer.
   // timer = add_event(cb, timeout)
   // cb written here, [this, metadata]() -> { this->states_.remove(metadata.resource_id); }
-  auto timer_ptr = dispatcher_.createTimer([this, metadata]() {
+  auto timer_ptr = tls_dispatcher.createTimer([this, metadata]() {
     this->states_.erase(metadata.resource_id_);
   });
   std::chrono::milliseconds ttl(metadata.ttl_ * 1000);

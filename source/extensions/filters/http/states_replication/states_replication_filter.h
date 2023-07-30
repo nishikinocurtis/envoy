@@ -4,8 +4,10 @@
 
 #pragma once
 
+
 #include "envoy/storage/storage.h"
 
+#include "source/common/common/logger.h"
 #include "source/extensions/filters/http/common/pass_through_filter.h"
 
 namespace Envoy {
@@ -13,7 +15,8 @@ namespace Extensions {
 namespace HttpFilters {
 namespace States {
 
-class StatesReplicationFilter : public Http::PassThroughFilter {
+class StatesReplicationFilter : public Http::PassThroughFilter,
+                                Logger::Loggable<Logger::Id::rr_manager> {
 public:
   // record content-length and replication-length at decodeHeader
   // moveOut the buffer and move into Storage
@@ -27,7 +30,6 @@ public:
 
   // call Storage Replicate and continue
 private:
-  std::shared_ptr<Envoy::States::Storage> storage_manager_;
   std::unique_ptr<Envoy::States::StateObject> state_obj_;
   bool is_attached_ = false;
   uint64_t states_position_;
