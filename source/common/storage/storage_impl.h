@@ -92,7 +92,7 @@ public:
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm);
 
-  void write(std::shared_ptr<StateObject>&& obj) override;
+  void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
   // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;

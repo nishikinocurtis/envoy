@@ -17,6 +17,7 @@ envoy_cc_library(
         "//envoy/http:codes_interface",
         "//envoy/http:filter_interface",
         "//envoy/storage:storage_interface",
+        "//source/common/common:logger_lib",
         "//source/common/storage:storage_lib",
         "//source/extensions/filters/http/common:pass_through_filter_lib",
     ],

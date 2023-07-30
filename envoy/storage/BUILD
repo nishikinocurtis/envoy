@@ -13,5 +13,6 @@ envoy_cc_library(
     hdrs = ["storage.h"],
     deps = [
         "//envoy/buffer:buffer_interface",
-    ]
+        "//envoy/event:dispatcher_interface",
+    ],
 )

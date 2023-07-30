@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "envoy/config/core/v3/config_source.pb.h"
+#include "envoy/event/dispatcher.h"
 
 #include "envoy/config/subscription.h"
 #include "envoy/common/pure.h"
@@ -95,7 +96,7 @@ public:
    * through service_id, pod_id, etc. need to register the obj in different map, register
    * cleanup event with ttl (or default ttl) timeout.
    */
-  virtual void write(std::shared_ptr<StateObject>&& obj //, some bytes array, or object
+  virtual void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher //, some bytes array, or object
   ) PURE;
 
   /**

@@ -363,8 +363,10 @@ void OwnedImpl::truncateOut(Envoy::Buffer::Instance &rhs, uint64_t position) {
   // rhs.move(*this, position); // then move the [0, position] out.
 
   // starting from last position
+
   OwnedImpl& other = static_cast<OwnedImpl&>(rhs); // adopted from move().
   auto truncate_size = other.length_ - position;
+  ENVOY_LOG(debug, "truncate_size: {} = length {} - position {}", truncate_size, other.length_, position);
   while (truncate_size > 0) {
     const uint64_t slice_size = other.slices_.back().dataSize();
     slices_.emplace_front(std::move(other.slices_.back()));
@@ -382,7 +384,7 @@ void OwnedImpl::truncateOut(Envoy::Buffer::Instance &rhs, uint64_t position) {
       truncate_size -= slice_size;
     }
   }
-
+  ENVOY_LOG(debug, "truncate out finished");
 }
 
 Reservation OwnedImpl::reserveForRead() {

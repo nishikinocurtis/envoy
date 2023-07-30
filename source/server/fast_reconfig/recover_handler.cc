@@ -64,7 +64,7 @@ Http::Code ReplicateRecoverHandler::onStatesReplication(Envoy::Server::AdminStre
   // do a const _cast here to avoid copy: change the request body to non-const.
   state_obj->writeObject(const_cast<Buffer::Instance &>(*admin_stream.getRequestBody()));
 
-  storage_ptr_->write(std::move(state_obj));
+  storage_ptr_->write(std::move(state_obj), server_.dispatcher());
 
   response.add("replicated");
   response_headers.setEnvoyUpstreamServiceTime(0ll);
