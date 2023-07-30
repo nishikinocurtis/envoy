@@ -16,10 +16,11 @@ namespace States {
 #define METADATA_FLAG_MASK ((1u << 16) - 1)
 
 Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHeaderMap &headers, bool end_stream) {
-  std::string resource_id = headers.get(Http::LowerCaseString("x-ftmesh-resource-id"))[0]->value().getStringView().data();
+  std::string resource_id =
+      std::string{headers.get(Http::LowerCaseString("x-ftmesh-resource-id"))[0]->value().getStringView()};
 
   auto content_length =
-      std::stoull(headers.get(Http::LowerCaseString("content-length"))[0]->value().getStringView().data(), nullptr);
+      std::stoull(std::string{headers.get(Http::LowerCaseString("content-length"))[0]->value().getStringView()}, nullptr);
   // ENVOY_LOG(debug, "content-length string: {}", headers.getByKey("content-length").value_or("0").data());
 
   ENVOY_LOG(debug, "HTTP Request captured by StatesReplicationFilter");
@@ -30,8 +31,6 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   }
 
   ENVOY_LOG(debug, "Entering states replication");
-  // drop the resource-id header
-  headers.remove(Http::LowerCaseString("x-ftmesh-resource-id"));
 
   // populate other fields.
   Envoy::States::StorageMetadata metadata;
@@ -39,7 +38,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   // do bitwise and with uint16mask to avoid overflow.
   metadata.recover_port_ =
       std::stoul(
-          headers.get(Http::LowerCaseString("x-ftmesh-recover-port"))[0]->value().getStringView().data(), nullptr)
+          std::string{headers.get(Http::LowerCaseString("x-ftmesh-recover-port"))[0]->value().getStringView()}, nullptr)
           & METADATA_FLAG_MASK;
   metadata.flags = std::stoul(
       headers.get(Http::LowerCaseString("x-ftmesh-flags"))[0]->value().getStringView().data(), nullptr)
@@ -47,17 +46,17 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   metadata.ttl_ = std::stoul(
       headers.get(Http::LowerCaseString("x-ftmesh-ttl"))[0]->value().getStringView().data(), nullptr);
 
-  metadata.recover_uri_ = headers.get(Http::LowerCaseString("x-ftmesh-recover-uri"))[0]->value().getStringView().data();
-  metadata.svc_id_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-id"))[0]->value().getStringView().data();
-  metadata.pod_id_ = headers.get(Http::LowerCaseString("x-ftmesh-pod-id"))[0]->value().getStringView().data();
-  metadata.method_name_ = headers.get(Http::LowerCaseString("x-ftmesh-method-name"))[0]->value().getStringView().data();
-  metadata.svc_ip_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-ip"))[0]->value().getStringView().data();
-  metadata.svc_port_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-port"))[0]->value().getStringView().data();
+  metadata.recover_uri_ = headers.get(Http::LowerCaseString("x-ftmesh-recover-uri"))[0]->value().getStringView();
+  metadata.svc_id_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-id"))[0]->value().getStringView();
+  metadata.pod_id_ = headers.get(Http::LowerCaseString("x-ftmesh-pod-id"))[0]->value().getStringView();
+  metadata.method_name_ = headers.get(Http::LowerCaseString("x-ftmesh-method-name"))[0]->value().getStringView();
+  metadata.svc_ip_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-ip"))[0]->value().getStringView();
+  metadata.svc_port_ = headers.get(Http::LowerCaseString("x-ftmesh-svc-port"))[0]->value().getStringView();
 
   states_position_ = std::stoull(
-      headers.get(Http::LowerCaseString("x-ftmesh-states-position"))[0]->value().getStringView().data(), nullptr);
+      std::string{headers.get(Http::LowerCaseString("x-ftmesh-states-position"))[0]->value().getStringView()}, nullptr);
 
-  auto new_content_length = content_length - states_position_;
+  auto new_content_length = states_position_;
   ENVOY_LOG(debug, "mutating headers, old content length: {}, states_position: {}, new content length: {}",
             content_length, states_position_, new_content_length);
   headers.setContentLength(new_content_length);
@@ -66,6 +65,9 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
             metadata.resource_id_, states_position_);
   state_obj_ = std::make_unique<Envoy::States::RawBufferStateObject>(metadata);
   is_attached_ = true;
+
+  // drop the resource-id header
+  headers.remove(Http::LowerCaseString("x-ftmesh-resource-id"));
   return Http::FilterHeadersStatus::StopIteration;
 }
 
