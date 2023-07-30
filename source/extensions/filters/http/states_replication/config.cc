@@ -16,8 +16,8 @@ namespace States {
 
 
 Http::FilterFactoryCb StatesReplicationFilterFactory::createFilterFactoryFromProtoTyped(
-    const envoy::extensions::filters::http::states_replication::v3::StatesReplication& proto_config,
-    const std::string& stats_prefix, Server::Configuration::FactoryContext& context) {
+    const envoy::extensions::filters::http::states_replication::v3::StatesReplication&,
+    const std::string&, Server::Configuration::FactoryContext&) {
   return [](Http::FilterChainFactoryCallbacks& callbacks) {
     callbacks.addStreamFilter(std::make_shared<StatesReplicationFilter>());
   };

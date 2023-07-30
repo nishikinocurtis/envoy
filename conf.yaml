@@ -37,7 +37,7 @@ static_resources:
 
   clusters:
   - name: cluster_0
-    type: LOGICAL_DNS
+    type: STATIC
     lb_policy: ROUND_ROBIN
     dns_lookup_family: V4_ONLY
     load_assignment:
@@ -47,5 +47,9 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: service.testserver
+                address: 127.0.0.1
                 port_value: 10730
+
+storage_manager:
+  rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal
+  default_states_ttl_second: 600
