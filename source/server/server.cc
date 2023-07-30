@@ -753,6 +753,12 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                          initial_config.admin().socketOptions(),
                                          stats_store_.createScope("listener.rr."));
     rr_manager_->registerListenerToConnectionHandler(handler_.get());
+  } else {
+    States::StorageSingleton::getOrCreateInstance(
+        *dispatcher_, *this,
+        bootstrap_.storage_manager().rpds_resource_locator(),
+        bootstrap_.storage_manager(), *local_info_,
+        *config_.clusterManager());
   }
 
   // We have to defer RTDS initialization until after the cluster manager is

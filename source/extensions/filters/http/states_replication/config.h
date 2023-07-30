@@ -5,6 +5,8 @@
 #pragma once
 
 #include "source/extensions/filters/http/common/factory_base.h"
+#include "envoy/extensions/filters/http/states_replication/v3/states_replication.pb.h"
+#include "envoy/extensions/filters/http/states_replication/v3/states_replication.pb.validate.h"
 
 namespace Envoy {
 namespace Extensions {
@@ -17,6 +19,7 @@ using ProtoStatesReplicationPolicy = envoy::extensions::filters::http::states_re
 class StatesReplicationFilterFactory
     : public Common::FactoryBase<envoy::extensions::filters::http::states_replication::v3::StatesReplication,
         ProtoStatesReplicationPolicy> {
+public:
   // it seems we really don't need some specific config
   // just inherits from FactoryBase and register the filter
   // declare a simple .proto in api/envoy/extensions/...
@@ -40,10 +43,9 @@ public:
       Runtime::Loader &loader) : config_(config), loader_(loader) {}
 
   bool enabled() const override {
-    if (config_.has_enabled()) {
-      const auto& filter_enabled = config_.enabled();
-      return loader_.snapshot().featureEnabled(filter_enabled.runtime_key(),
-                                               filter_enabled.default_value());
+    if (config_.enabled()) {
+      return loader_.snapshot().featureEnabled("100",
+                                               100);
     }
     return true;
   }

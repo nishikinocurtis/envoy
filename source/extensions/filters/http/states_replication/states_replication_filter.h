@@ -13,7 +13,7 @@ namespace Extensions {
 namespace HttpFilters {
 namespace States {
 
-class StatesReplicationFilter : public Http::PassThroughDecoderFilter {
+class StatesReplicationFilter : public Http::PassThroughFilter {
 public:
   // record content-length and replication-length at decodeHeader
   // moveOut the buffer and move into Storage

@@ -19,7 +19,7 @@ envoy_cc_library(
         "//envoy/storage:storage_interface",
         "//source/common/storage:storage_lib",
         "//source/extensions/filters/http/common:pass_through_filter_lib",
-    ]
+    ],
 )
 
 envoy_cc_extension(
@@ -33,6 +33,7 @@ envoy_cc_extension(
         "//source/common/router:config_lib",
         "//source/extensions/filters/http/common:factory_base_lib",
         ":states_replication_filter_lib",
+        "@envoy_api//envoy/extensions/filters/http/states_replication/v3:pkg_cc_proto",
         # and some api definition.
-    ]
+    ],
 )
