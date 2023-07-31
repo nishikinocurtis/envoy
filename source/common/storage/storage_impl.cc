@@ -14,6 +14,7 @@
 #include "source/common/config/utility.h"
 #include "source/common/protobuf/utility.h"
 
+#define BENCHMARK_MODE
 
 namespace Envoy {
 namespace States {
@@ -132,12 +133,15 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
                          const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm)
                          : dispatcher_(dispatcher), server_(server),
-                         // rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
-                         //          *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
+#ifndef BENCHMARK_MODE
+                         rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
+                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
+#endif
                          local_info_(local_info), cm_(cm) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+#ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
-
+#endif
 }
 
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) {
@@ -211,15 +215,20 @@ void StorageImpl::recover(const std::string& resource_id) {
       // makeHttpCall, transfer the resource.
       auto headers = Http::RequestHeaderMapImpl::create();
       // populate, fill in host and path from metadata
-      headers->setHost(local_info_.address()->logicalName() + std::to_string(metadata.recover_port_));
+      headers->setHost("127.0.0.1:" + std::to_string(metadata.recover_port_));
+      headers->setCopy(Http::LowerCaseString("x-ftmesh-resource-id"), metadata.resource_id_);
+      headers->setPath(metadata.recover_uri_);
       // how to be aware of which cluster I am sending to?
       // actually I'm just sending to localhost...
       auto deliver_target = local_info_.clusterName();
+#ifdef BENCHMARK_MODE
+      deliver_target = "cluster_1"; // for benchmarking use only.
+#endif
       makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
       return;
     }
   } else {
-    ENVOY_LOG(debug, "resource x not found for recovery");
+    ENVOY_LOG(debug, "resource {} not found for recovery", resource_id);
   }
 }
 

@@ -88,12 +88,13 @@ public:
     Http::Code getMessageStatus() override { return code_; };
 
     // should only be executed once
-    std::unique_ptr<Http::ResponseHeaderMap> dumpMessageHeader() override { return std::move(headers_); } ;
+    Http::ResponseHeaderMap& getMessageHeader() override { return *headers_; }
+    std::unique_ptr<Http::ResponseHeaderMap> moveMessageHeader() override { return std::move(headers_); }
     std::pair<bool, std::unique_ptr<Buffer::Instance>> fetchNextMessageBodyChunk() override;
 
   private:
     friend class GrpcRequestProcessorImpl;
-    std::unique_ptr<Http::ResponseHeaderMapImpl> headers_;
+    std::unique_ptr<Http::ResponseHeaderMap> headers_;
     std::unique_ptr<Buffer::OwnedImpl> buf_;
     Http::Code code_ = Http::Code::OK;
   };

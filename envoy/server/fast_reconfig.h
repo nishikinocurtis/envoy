@@ -47,7 +47,8 @@ public:
     virtual ~GrpcMessageOverHttp() = default;
 
     virtual Http::Code getMessageStatus() PURE;
-    virtual std::unique_ptr<Http::ResponseHeaderMap> dumpMessageHeader() PURE;
+    virtual Http::ResponseHeaderMap& getMessageHeader() PURE;
+    virtual std::unique_ptr<Http::ResponseHeaderMap> moveMessageHeader() PURE;
     virtual std::pair<bool, std::unique_ptr<Buffer::Instance>> fetchNextMessageBodyChunk() PURE;
   };
   using GrpcMessageOverHttpPtr = std::unique_ptr<GrpcMessageOverHttp>;

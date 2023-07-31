@@ -1,7 +1,28 @@
+node:
+  id: benchmark_proxy
+  cluster: "fib_calc"
+
 admin:
   profile_path: /tmp/envoy.prof
   address:
-    socket_address: { address: 127.0.0.1, port_value: 9901 }
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+rerouting_endpoint:
+  rerouting: true
+  port: 9903
+
+#dynamic_resources:
+#  lds_config:
+#    initial_fetch_timeout:
+#      seconds: 600
+#    resource_api_version: V3
+#    api_config_source:
+#      api_type: REST
+#      transport_api_version: V3
+#      cluster_names:
+#      - lds_cluster
+#      refresh_delay:
+#        seconds: 600
 
 static_resources:
   listeners:
@@ -49,6 +70,32 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 10730
+  - name: cluster_1
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    dns_lookup_family: V4_ONLY
+    load_assignment:
+      cluster_name: target_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 10801
+  - name: lds_cluster
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    dns_lookup_family: V4_ONLY
+    load_assignment:
+      cluster_name: lds_cluster
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 127.0.0.1
+                    port_value: 10901
 
 storage_manager:
   rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal

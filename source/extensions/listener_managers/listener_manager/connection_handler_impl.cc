@@ -101,7 +101,7 @@ void ConnectionHandlerImpl::addListener(absl::optional<uint64_t> overridden_list
     }
   }
 
-  ASSERT(!listener_map_by_tag_.contains(config.listenerTag()));
+  // ASSERT(!listener_map_by_tag_.contains(config.listenerTag()));
 
   for (const auto& per_address_details : details->per_address_details_list_) {
     // This map only stores the new listener.

@@ -41,8 +41,8 @@ public:
   /**
    * @return std::weak_ptr<const Config::SubscriptionCallbacks> for others to pierce into Lds Management.
    */
-   virtual std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
-     return std::weak_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+   virtual std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+     return std::shared_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
    };
 
 
@@ -201,7 +201,7 @@ public:
    * No param needed.
    * @return std::weak_ptr<Config::SubscriptionCallbacks> for subscription update callback
    */
-   virtual std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() PURE;
+   virtual std::shared_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() PURE;
 
    /**
     * Get a shared_ptr of resource_decoder_ of lds_api_.

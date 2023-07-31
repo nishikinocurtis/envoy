@@ -731,8 +731,13 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
 
   // after xDS subscription initialized start our reconfig server to pierce the update into subscription
   if (bootstrap_.rerouting_endpoint().rerouting()) {
-    auto lds_api_cb = listener_manager_->getLdsApiHandle();
-    auto lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
+    std::shared_ptr<Config::SubscriptionCallbacks> lds_api_cb;
+    Config::OpaqueResourceDecoderSharedPtr lds_resource_decoder;
+    if (bootstrap_.dynamic_resources().has_lds_config() ||
+        !bootstrap_.dynamic_resources().lds_resources_locator().empty()) {
+      lds_api_cb = listener_manager_->getLdsApiHandle();
+      lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
+    }
     // TODO: waiting for ConnManager interface implementation to be instantiated.
     rr_manager_ =
         std::make_unique<FastReconfigServerImpl>(*this, true, std::move(lds_api_cb),
@@ -749,8 +754,9 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
     auto rr_address =
         std::make_shared<const Network::Address::Ipv4Instance>("0.0.0.0",
                                                                bootstrap_.rerouting_endpoint().port());
+    rr_manager_socket_option_ = std::make_shared<std::vector<Network::Socket::OptionConstSharedPtr>>();
     rr_manager_->bindHTTPListeningSocket(rr_address,
-                                         initial_config.admin().socketOptions(),
+                                         rr_manager_socket_option_,
                                          stats_store_.createScope("listener.rr."));
     rr_manager_->registerListenerToConnectionHandler(handler_.get());
   } else {

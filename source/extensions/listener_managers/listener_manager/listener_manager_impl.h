@@ -199,8 +199,11 @@ public:
     ASSERT(lds_api_ == nullptr);
     lds_api_ = factory_->createLdsApi(lds_config, lds_resources_locator);
   }
-  std::weak_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() override {
-    return lds_api_->genSubscriptionCallbackPtr();
+  std::shared_ptr<Config::SubscriptionCallbacks> getLdsApiHandle() override {
+    if (lds_cb_ptr_ == nullptr) {
+      lds_cb_ptr_ = lds_api_->genSubscriptionCallbackPtr();
+    }
+    return lds_cb_ptr_;
   }
   Config::OpaqueResourceDecoderSharedPtr getResourceDecoderFromLdsApi() override {
     return lds_api_->getResourceDecoderPtr();
@@ -334,6 +337,7 @@ private:
   ListenerManagerStats stats_;
   ConfigTracker::EntryOwnerPtr config_tracker_entry_;
   LdsApiPtr lds_api_;
+  std::shared_ptr<Config::SubscriptionCallbacks> lds_cb_ptr_;
   const bool enable_dispatcher_stats_{};
   using UpdateFailureState = envoy::admin::v3::UpdateFailureState;
   absl::flat_hash_map<std::string, std::unique_ptr<UpdateFailureState>> error_state_tracker_;
