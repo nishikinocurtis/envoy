@@ -37,7 +37,7 @@ public:
   std::chrono::milliseconds listenerFiltersTimeout() const override { return {}; }
   bool continueOnListenerFiltersTimeout() const override { return false; }
   Stats::Scope& listenerScope() override { return *scope_; }
-  uint64_t listenerTag() const override { return 0; }
+  virtual uint64_t listenerTag() const override { return 0; }
   const std::string& name() const override { return name_; }
   Network::UdpListenerConfigOptRef udpListenerConfig() override { return {}; }
   Network::InternalListenerConfigOptRef internalListenerConfig() override { return {}; }

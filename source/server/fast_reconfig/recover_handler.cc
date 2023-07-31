@@ -34,6 +34,8 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
     storage_ptr_->recover(resource_id);
   }
 
+  ENVOY_LOG(debug, "preparing response");
+
   response.add("socket data here");
   // populate headers
   response_headers.setCopy(Http::LowerCaseString("x-ftmesh-recovered"), "true");

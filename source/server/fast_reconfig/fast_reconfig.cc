@@ -22,7 +22,7 @@ void FastReconfigServerImpl::bindHTTPListeningSocket(Network::Address::InstanceC
                  "listen() failed on re-config listener");
   socket_factories_.emplace_back(std::make_unique<ServerEndpointListenSocketFactory>(socket_));
   listener_ = std::make_unique<ReconfigListener>(*this, std::move(listener_scope));
-  ENVOY_LOG(info, "admin address: {}",
+  ENVOY_LOG(info, "reconfig address: {}",
             socket().connectionInfoProvider().localAddress()->asString());
   // dump logs..
 }

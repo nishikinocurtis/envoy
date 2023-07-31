@@ -24,7 +24,7 @@ namespace Server {
  * LDS API implementation that fetches via Subscription.
  */
 class LdsApiImpl : public LdsApi,
-                   Envoy::Config::SubscriptionBase<envoy::config::listener::v3::Listener>,
+                   public Envoy::Config::SubscriptionBase<envoy::config::listener::v3::Listener>,
                    Logger::Loggable<Logger::Id::upstream> {
 public:
   LdsApiImpl(const envoy::config::core::v3::ConfigSource& lds_config,
@@ -35,7 +35,7 @@ public:
   // Server::LdsApi
   std::string versionInfo() const override { return system_version_info_; }
 
-  std::weak_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
+  std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
     return shared_from_this(); // implicitly downgraded, defined at interface level to avoid exposing lifecycle control.
   }
 

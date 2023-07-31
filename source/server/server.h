@@ -365,6 +365,7 @@ private:
   AccessLog::AccessLogManagerImpl access_log_manager_;
   std::unique_ptr<Admin> admin_;
   std::unique_ptr<FastReconfigServer> rr_manager_;
+  Network::Socket::OptionsSharedPtr rr_manager_socket_option_;
   Singleton::ManagerPtr singleton_manager_;
   Network::ConnectionHandlerPtr handler_;
   std::unique_ptr<Runtime::ScopedLoaderSingleton> runtime_singleton_;

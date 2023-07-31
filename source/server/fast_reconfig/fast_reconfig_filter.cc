@@ -29,9 +29,9 @@ void FastReconfigFilter::onComplete() {
   auto responseStream = handler->process();
 
   Utility::populateFallbackResponseHeaders(responseStream->getMessageStatus(),
-                                           *responseStream->dumpMessageHeader());
+                                           responseStream->getMessageHeader());
   decoder_callbacks_->encodeHeaders(
-      responseStream->dumpMessageHeader(), false,
+      responseStream->moveMessageHeader(), false,
                                     StreamInfo::ResponseCodeDetails::get().FastReconfigFilterResponse);
 
   bool more_data;
