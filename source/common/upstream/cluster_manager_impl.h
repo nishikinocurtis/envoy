@@ -258,6 +258,10 @@ public:
 
   std::size_t warmingClusterCount() const { return warming_clusters_.size(); }
 
+  CdsApiPtr getCdsApiHandle() override {
+    return cds_api_;
+  }
+
   // Upstream::ClusterManager
   bool addOrUpdateCluster(const envoy::config::cluster::v3::Cluster& cluster,
                           const std::string& version_info) override;

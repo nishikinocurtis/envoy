@@ -14,6 +14,7 @@ envoy_cc_library(
         "//source/server:__subpackages__",
     ],
     deps = [
+        ":cluster_reconfig_lib",
         ":fast_reconfig_filter_lib",
         ":listener_reconfig_lib",
         ":recover_handler_lib",
@@ -77,6 +78,18 @@ envoy_cc_library(
         "//source/common/config:decoded_resource_lib",
         "//source/common/protobuf",
         "//source/extensions/listener_managers/listener_manager:lds_api_lib",
+    ],
+)
+
+envoy_cc_library(
+    name = "cluster_reconfig_lib",
+    srcs = ["cluster_handler.cc"],
+    hdrs = ["cluster_handler.h"],
+    deps = [
+        ":reconfig_handler_base_lib",
+        "//source/common/config:decoded_resource_lib",
+        "//source/common/config:subscription_base_interface",
+        "//source/common/protobuf",
     ],
 )
 

@@ -190,6 +190,8 @@ struct ClusterConnectivityState {
   int64_t connecting_and_connected_stream_capacity_{};
 };
 
+class CdsApi;
+
 /**
  * Manages connection pools and load balancing for upstream clusters. The cluster manager is
  * persistent and shared among multiple ongoing requests/connections.
@@ -210,6 +212,11 @@ public:
   using InitializationCompleteCallback = std::function<void()>;
 
   virtual ~ClusterManager() = default;
+
+  /*
+   * return the CdsApi ptr from this.
+   */
+  virtual std::shared_ptr<CdsApi> getCdsApiHandle() PURE;
 
   /**
    * Add or update a cluster via API. The semantics of this API are:
@@ -457,9 +464,18 @@ public:
    * @return std::string last accepted version from fetch.
    */
   virtual const std::string versionInfo() const PURE;
+
+  virtual std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() {
+    return std::shared_ptr<Config::SubscriptionCallbacks>(); // if it doesn't support, return empty ptr.
+  };
+
+
+  virtual Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() {
+    return nullptr; // if it doesn't support, return nullptr.
+  }
 };
 
-using CdsApiPtr = std::unique_ptr<CdsApi>;
+using CdsApiPtr = std::shared_ptr<CdsApi>;
 
 /**
  * Factory for objects needed during cluster manager operation.

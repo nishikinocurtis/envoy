@@ -1,9 +1,9 @@
 //
 // Created by qiutong on 7/6/23.
 //
+#pragma once
 
 #include "envoy/config/subscription.h"
-
 
 #include "reconfig_handler_base.h"
 #include "source/common/common/logger.h"

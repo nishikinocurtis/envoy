@@ -731,17 +731,25 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
 
   // after xDS subscription initialized start our reconfig server to pierce the update into subscription
   if (bootstrap_.rerouting_endpoint().rerouting()) {
-    std::shared_ptr<Config::SubscriptionCallbacks> lds_api_cb;
-    Config::OpaqueResourceDecoderSharedPtr lds_resource_decoder;
+    std::shared_ptr<Config::SubscriptionCallbacks> lds_api_cb, cds_api_cb;
+    Config::OpaqueResourceDecoderSharedPtr lds_resource_decoder, cds_resource_decoder;
     if (bootstrap_.dynamic_resources().has_lds_config() ||
         !bootstrap_.dynamic_resources().lds_resources_locator().empty()) {
       lds_api_cb = listener_manager_->getLdsApiHandle();
       lds_resource_decoder = listener_manager_->getResourceDecoderFromLdsApi();
     }
+    if (bootstrap_.dynamic_resources().has_cds_config() ||
+        !bootstrap_.dynamic_resources().cds_resources_locator().empty()) {
+      auto cds_api = config_.clusterManager()->getCdsApiHandle();
+      cds_api_cb = cds_api->genSubscriptionCallbackPtr();
+      cds_resource_decoder = cds_api->getResourceDecoderPtr();
+    }
     // TODO: waiting for ConnManager interface implementation to be instantiated.
     rr_manager_ =
         std::make_unique<FastReconfigServerImpl>(*this, true, std::move(lds_api_cb),
                                                  std::move(lds_resource_decoder),
+                                                 std::move(cds_api_cb),
+                                                 std::move(cds_resource_decoder),
                                                  States::StorageSingleton::getOrCreateInstance(
                                                      *dispatcher_, *this,
                                                      bootstrap_.storage_manager().rpds_resource_locator(),

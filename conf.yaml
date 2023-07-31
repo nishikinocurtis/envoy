@@ -11,18 +11,18 @@ rerouting_endpoint:
   rerouting: true
   port: 9903
 
-#dynamic_resources:
-#  lds_config:
-#    initial_fetch_timeout:
-#      seconds: 600
-#    resource_api_version: V3
-#    api_config_source:
-#      api_type: REST
-#      transport_api_version: V3
-#      cluster_names:
-#      - lds_cluster
-#      refresh_delay:
-#        seconds: 600
+dynamic_resources:
+  lds_config:
+    initial_fetch_timeout:
+      seconds: 600
+    resource_api_version: V3
+    api_config_source:
+      api_type: REST
+      transport_api_version: V3
+      cluster_names:
+      - lds_cluster
+      refresh_delay:
+        seconds: 600
 
 static_resources:
   listeners:
