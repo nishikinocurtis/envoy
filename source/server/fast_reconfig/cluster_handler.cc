@@ -13,27 +13,30 @@ namespace Server {
 
 Http::Code ClusterHandler::pushNewClusterInfo(AdminStream &admin_stream, Http::ResponseHeaderMap &response_headers,
                                               Buffer::Instance &response) {
+  ENVOY_LOG(debug, "entering pushNewClusterInfo processor");
+
   auto siz_ = admin_stream.getRequestBody()->length();
   auto raw_body = std::unique_ptr<uint8_t[]>(new uint8_t[siz_]);
   admin_stream.getRequestBody()->copyOut(0, siz_, raw_body.get());
 
   auto pb_stream = std::make_unique<Protobuf::io::CodedInputStream>(raw_body.get(), siz_);
 
-  envoy::service::discovery::v3::DeltaDiscoveryResponse ddr;
+  envoy::service::discovery::v3::DiscoveryResponse ddr;
   auto success = ddr.ParseFromCodedStream(pb_stream.get());
   if (!success) {
     ENVOY_LOG(debug, "pushing cluster parsing failed");
     return Http::Code::BadRequest;
   }
-
-  auto added_resources =
-      Config::SpecifiedResourcesWrapper<envoy::service::discovery::v3::Resource>
-          (*resource_decoder_, ddr.resources(), ddr.system_version_info());
+  // note: for delta response, the resources field is of type Resource,
+  // so use SpecifiedDecodedResourcesWrapper instead.
+  // also, remember to replace the onConfigUpdate() to delta version.
+  auto resources =
+      Config::DecodedResourcesWrapper
+          (*resource_decoder_, ddr.resources(), ddr.version_info());
 
   if (!callback_.expired()) {
-    callback_.lock()->onConfigUpdate(added_resources.refvec_,
-                                     ddr.removed_resources(),
-                                     ddr.system_version_info());
+    callback_.lock()->onConfigUpdate(resources.refvec_,
+                                     ddr.version_info());
   }
 
   // write response headers

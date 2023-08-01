@@ -93,7 +93,7 @@ FastReconfigServer::GrpcRequestProcessorPtr FastReconfigServerImpl::matchAndAppl
   // get request path
   // fetch factory from registry
   // apply factory with admin_stream, and return the processor.
-  std::string path_and_query{admin_stream.getRequestHeaders().getPathValue().data()};
+  std::string path_and_query{admin_stream.getRequestHeaders().getPathValue()};
 
   auto iter = handler_registry_.find(path_and_query);
   if (iter != handler_registry_.end()) {

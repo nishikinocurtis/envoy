@@ -32,6 +32,7 @@ LdsApiImpl::LdsApiImpl(const envoy::config::core::v3::ConfigSource& lds_config,
   if (lds_resources_locator == nullptr) {
     subscription_ = cm.subscriptionFactory().subscriptionFromConfigSource(
         lds_config, Grpc::Common::typeUrl(resource_name), *scope_, *this, resource_decoder_, {});
+    ENVOY_LOG(debug, "subscription created for LDS");
   } else {
     subscription_ = cm.subscriptionFactory().collectionSubscriptionFromUrl(
         *lds_resources_locator, lds_config, resource_name, *scope_, *this, resource_decoder_);
@@ -106,6 +107,9 @@ void LdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& r
                                 const std::string& version_info) {
   // We need to keep track of which listeners need to remove.
   // Specifically, it's [listeners we currently have] - [listeners found in the response].
+
+  ENVOY_LOG(debug, "lds receiving updates");
+
   absl::node_hash_set<std::string> listeners_to_remove;
   for (const auto& listener :
        listener_manager_.listeners(ListenerManager::WARMING | ListenerManager::ACTIVE)) {

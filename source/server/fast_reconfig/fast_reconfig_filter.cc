@@ -26,6 +26,7 @@ void FastReconfigFilter::onComplete() {
   ENVOY_STREAM_LOG(debug, "request complete: path: {}", *decoder_callbacks_, path);
 
   auto handler = server_handler_fn_(*this);
+  ENVOY_LOG(debug, "handler got");
   auto responseStream = handler->process();
 
   Utility::populateFallbackResponseHeaders(responseStream->getMessageStatus(),
