@@ -23,7 +23,7 @@ namespace Upstream {
  * CDS API implementation that fetches via Subscription.
  */
 class CdsApiImpl : public CdsApi,
-                   Envoy::Config::SubscriptionBase<envoy::config::cluster::v3::Cluster> {
+                   public Envoy::Config::SubscriptionBase<envoy::config::cluster::v3::Cluster> {
 public:
   static CdsApiPtr create(const envoy::config::core::v3::ConfigSource& cds_config,
                           const xds::core::v3::ResourceLocator* cds_resources_locator,
@@ -36,6 +36,14 @@ public:
     initialize_callback_ = callback;
   }
   const std::string versionInfo() const override { return helper_.versionInfo(); }
+
+  std::shared_ptr<Config::SubscriptionCallbacks> genSubscriptionCallbackPtr() override {
+    return shared_from_this();
+  }
+
+  Config::OpaqueResourceDecoderSharedPtr getResourceDecoderPtr() override {
+    return resource_decoder_;
+  }
 
 private:
   // Config::SubscriptionCallbacks
