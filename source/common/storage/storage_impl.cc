@@ -141,6 +141,9 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
+  target_clusters_ = std::make_unique<std::list<std::string>>();
+  target_clusters_->emplace_back("rp_cluster_0");
+  target_clusters_->emplace_back("rp_cluster_1");
 #endif
 }
 

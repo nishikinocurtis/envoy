@@ -77,9 +77,12 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
   } else {
     ENVOY_LOG(debug, "start moving buffer");
     state_obj_->getObject().truncateOut(data, states_position_);
+    auto resource_id = state_obj_->metadata().resource_id_;
     auto callback = decoder_callbacks_;
-    Envoy::States::StorageSingleton::getInstance()->write(std::move(state_obj_), callback->dispatcher());
+    auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
+    storage_mgr->write(std::move(state_obj_), callback->dispatcher());
     ENVOY_LOG(debug, "states buffer captured, continue on next filter, clearing stateful counters");
+    storage_mgr->replicate(resource_id);
     is_attached_ = false;
     states_position_ = 0;
     return Http::FilterDataStatus::Continue;
