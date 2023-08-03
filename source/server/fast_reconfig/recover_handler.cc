@@ -60,7 +60,9 @@ Http::Code ReplicateRecoverHandler::onStatesReplication(Envoy::Server::AdminStre
   const auto &headers = admin_stream.getRequestHeaders();
   States::StorageMetadata metadata;
   // parse header into metadata, or consider packed implementation.
-  metadata.resource_id_ = headers.getByKey("x-ftmesh-resource-id").value();
+  // metadata.resource_id_ = headers.getByKey("x-ftmesh-resource-id").value();
+  metadata.resource_id_ =
+      std::string{headers.get(Http::LowerCaseString("x-ftmesh-resource-id"))[0]->value().getStringView()};
   auto state_obj = std::make_shared<States::RawBufferStateObject>(metadata);
 
   // do a const _cast here to avoid copy: change the request body to non-const.

@@ -189,6 +189,8 @@ void StorageImpl::replicate(const std::string &resource_id) {
   if (it != states_.end()) {
     for (const auto& target : *target_clusters_) { // always async
       auto headers = Http::RequestHeaderMapImpl::create();
+      headers->setPath("/replicate_single");
+      headers->setCopy(Http::LowerCaseString("x-ftmesh-resource-id"), it->second->metadata().resource_id_);
       // populate, filling in metadata,
       // filling in host and path from configuration
       makeHttpCall(target, std::move(headers),
