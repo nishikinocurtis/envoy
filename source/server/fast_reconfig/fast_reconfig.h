@@ -22,6 +22,7 @@
 #include "source/common/stats/isolated_store_impl.h"
 #include "source/server/fast_reconfig/fast_reconfig_filter.h"
 #include "source/server/fast_reconfig/listener_handler.h"
+#include "source/server/fast_reconfig/cluster_handler.h"
 #include "source/server/fast_reconfig/recover_handler.h"
 #include "source/server/null_overload_manager.h"
 #include "source/server/server_endpoint_listener.h"
@@ -50,6 +51,8 @@ public:
                          bool ignore_global_conn_limit,
                          SubscriptionCallbackWeakPtr&& listener_reconfig_callback,
                          Config::OpaqueResourceDecoderSharedPtr&& listener_reconfig_resource_decoder,
+                         SubscriptionCallbackWeakPtr&& cluster_reconfig_callback,
+                         Config::OpaqueResourceDecoderSharedPtr&& cluster_reconfig_resource_decoder,
                          std::shared_ptr<States::Storage>&& storage_manager);
 
   const Network::Socket& socket() override { return *socket_; }
@@ -306,6 +309,7 @@ private:
   NullOverloadManager null_overload_manager_;
   const Network::FilterChainSharedPtr fast_reconfig_server_filter_chain_;
   ListenerHandler listener_reconfig_handler_instance_;
+  ClusterHandler cluster_reconfig_handler_instance_;
   ReplicateRecoverHandler replicate_recover_handler_instance_;
   Http::Http1::CodecStats::AtomicPtr http1_codec_stats_;
   Http::Http2::CodecStats::AtomicPtr http2_codec_stats_;

@@ -37,7 +37,11 @@ void GrpcSubscriptionImpl::start(const absl::flat_hash_set<std::string>& resourc
     init_fetch_timeout_timer_->enableTimer(init_fetch_timeout_);
   }
 
+  ENVOY_LOG(debug, "starting subscription");
+
   watch_ = grpc_mux_->addWatch(type_url_, resources, *this, resource_decoder_, options_);
+
+  ENVOY_LOG(debug, "grpc_mux_ watched");
 
   // The attempt stat here is maintained for the purposes of having consistency between ADS and
   // gRPC/filesystem/REST Subscriptions. Since ADS is push based and muxed, the notion of an
@@ -47,6 +51,7 @@ void GrpcSubscriptionImpl::start(const absl::flat_hash_set<std::string>& resourc
   // ADS initial request batching relies on the users of the GrpcMux *not* calling start on it,
   // whereas non-ADS xDS users must call it themselves.
   if (!is_aggregated_) {
+    ENVOY_LOG(debug, "grpc_mux_ starting");
     grpc_mux_->start();
   }
 }

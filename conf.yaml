@@ -1,6 +1,6 @@
 node:
-  id: benchmark_proxy
-  cluster: "fib_calc"
+  id: test-id
+  cluster: test-cluster
 
 admin:
   profile_path: /tmp/envoy.prof
@@ -11,18 +11,28 @@ rerouting_endpoint:
   rerouting: true
   port: 9903
 
-#dynamic_resources:
-#  lds_config:
-#    initial_fetch_timeout:
-#      seconds: 600
-#    resource_api_version: V3
-#    api_config_source:
-#      api_type: REST
-#      transport_api_version: V3
+dynamic_resources:
+  lds_config:
+    resource_api_version: V3
+    api_config_source:
+      api_type: GRPC
+      transport_api_version: V3
 #      cluster_names:
-#      - lds_cluster
-#      refresh_delay:
-#        seconds: 600
+#      - xds_cluster
+#      refresh_delay: 600s
+      grpc_services:
+        - envoy_grpc:
+            cluster_name: xds_cluster
+      set_node_on_first_message_only: true
+  cds_config:
+    resource_api_version: V3
+    api_config_source:
+      api_type: GRPC
+      transport_api_version: V3
+      grpc_services:
+        - envoy_grpc:
+            cluster_name: xds_cluster
+      set_node_on_first_message_only: true
 
 static_resources:
   listeners:
@@ -83,12 +93,14 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 10801
-  - name: lds_cluster
+  - name: xds_cluster
     type: STATIC
     lb_policy: ROUND_ROBIN
     dns_lookup_family: V4_ONLY
+    http2_protocol_options: {}
+    connect_timeout: 1s
     load_assignment:
-      cluster_name: lds_cluster
+      cluster_name: xds_cluster
       endpoints:
         - lb_endpoints:
             - endpoint:
@@ -100,3 +112,17 @@ static_resources:
 storage_manager:
   rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal
   default_states_ttl_second: 600
+
+#layered_runtime:
+#  layers:
+#    - name: runtime-0
+#      rtds_layer:
+#        rtds_config:
+#          resource_api_version: V3
+#          api_config_source:
+#            transport_api_version: V3
+#            api_type: GRPC
+#            grpc_services:
+#              envoy_grpc:
+#                cluster_name: xds_cluster
+#        name: runtime-0
