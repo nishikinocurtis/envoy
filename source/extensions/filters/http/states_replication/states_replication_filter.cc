@@ -16,6 +16,13 @@ namespace States {
 #define METADATA_FLAG_MASK ((1u << 16) - 1)
 
 Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHeaderMap &headers, bool end_stream) {
+  auto resource_id_exist = headers.get(Http::LowerCaseString("x-ftmesh-resource-id")).size();
+
+  if (!resource_id_exist || end_stream) {
+    is_attached_ = false;
+    return Http::FilterHeadersStatus::Continue;
+  }
+
   std::string resource_id =
       std::string{headers.get(Http::LowerCaseString("x-ftmesh-resource-id"))[0]->value().getStringView()};
 
@@ -25,10 +32,6 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
 
   ENVOY_LOG(debug, "HTTP Request captured by StatesReplicationFilter");
 
-  if (resource_id.empty() || end_stream) {
-    is_attached_ = false;
-    return Http::FilterHeadersStatus::Continue;
-  }
 
   ENVOY_LOG(debug, "Entering states replication");
 
