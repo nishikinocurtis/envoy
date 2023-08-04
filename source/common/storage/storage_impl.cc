@@ -161,7 +161,8 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
     // std::chrono::milliseconds ttl(metadata.ttl_ * 1000);
     // timer_old->second->disableTimer();
     // timer_old->second->enableTimer(ttl);
-
+    auto& buf = existing->second->getObject();
+    buf.drain(buf.length());
     existing->second->move(*obj);
     ttl_counter_[metadata.resource_id_] += 1;
   } else {
