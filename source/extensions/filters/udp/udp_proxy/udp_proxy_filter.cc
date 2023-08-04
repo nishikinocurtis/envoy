@@ -132,9 +132,13 @@ UdpProxyFilter::ClusterInfo::createSession(Network::UdpRecvData::LocalPeerAddres
     return nullptr;
   }
 
+  ENVOY_LOG(debug, "connection ability verified");
+
   if (optional_host) {
     return createSessionWithHost(std::move(addresses), optional_host);
   }
+
+  ENVOY_LOG(debug, "entering host selection");
 
   auto host = chooseHost(addresses.peer_);
   if (host == nullptr) {
@@ -142,6 +146,7 @@ UdpProxyFilter::ClusterInfo::createSession(Network::UdpRecvData::LocalPeerAddres
     cluster_.info()->trafficStats()->upstream_cx_none_healthy_.inc();
     return nullptr;
   }
+  ENVOY_LOG(debug, "host chosen");
   return createSessionWithHost(std::move(addresses), host);
 }
 
@@ -159,7 +164,14 @@ UdpProxyFilter::ActiveSession* UdpProxyFilter::ClusterInfo::createSessionWithHos
 Upstream::HostConstSharedPtr UdpProxyFilter::ClusterInfo::chooseHost(
     const Network::Address::InstanceConstSharedPtr& peer_address) const {
   UdpLoadBalancerContext context(filter_.config_->hashPolicy(), peer_address);
-  Upstream::HostConstSharedPtr host = cluster_.loadBalancer().chooseHost(&context);
+  ENVOY_LOG(debug, "hashed before choosing host");
+  auto& lb = cluster_.loadBalancer();
+  if (static_cast<void*>(&lb) == 0x0) {
+    // lb = cluster_.loadBalancer();
+  }
+  ENVOY_LOG(debug, "lb address: {}", static_cast<void*>(&lb));
+  Upstream::HostConstSharedPtr host = lb.chooseHost(&context);
+  ENVOY_LOG(debug, "host chosen from cluster_ lb");
   return host;
 }
 

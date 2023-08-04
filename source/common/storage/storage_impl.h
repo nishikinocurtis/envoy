@@ -156,7 +156,8 @@ private:
 
   std::unordered_map<std::string, Event::TimerPtr> ttl_timers_;
   std::unordered_map<std::string, std::shared_ptr<StateObject>> states_;
-  WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_name
+  std::unordered_map<std::string, uint32_t> ttl_counter_;
+  WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_nam
 
   // need a optionGenerator
   // for AsyncClient.send() usage.

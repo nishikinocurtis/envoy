@@ -1209,6 +1209,7 @@ void ClusterManagerImpl::ThreadLocalClusterManagerImpl::ClusterEntry::updateHost
     HostMapConstSharedPtr cross_priority_host_map) {
   ENVOY_LOG(debug, "membership update for TLS cluster {} added {} removed {}", name,
             hosts_added.size(), hosts_removed.size());
+  ENVOY_LOG(debug, "current lb address: {}", static_cast<void*>(&(*lb_)));
   priority_set_.updateHosts(priority, std::move(update_hosts_params), std::move(locality_weights),
                             hosts_added, hosts_removed, overprovisioning_factor,
                             std::move(cross_priority_host_map));

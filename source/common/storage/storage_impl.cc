@@ -157,20 +157,28 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
     // cancel old timer
     // do some remove event,
     // move new object
-    auto timer_old = ttl_timers_.find(metadata.resource_id_);
-    timer_old->second->disableTimer();
+    // auto timer_old = ttl_timers_.find(metadata.resource_id_);
+    // std::chrono::milliseconds ttl(metadata.ttl_ * 1000);
+    // timer_old->second->disableTimer();
+    // timer_old->second->enableTimer(ttl);
 
     existing->second->move(*obj);
+    ttl_counter_[metadata.resource_id_] += 1;
   } else {
     auto inserted_pair = states_.insert(std::make_pair(metadata.resource_id_, std::move(obj)));
     // register the iterator to different categories.
     by_pod_.insert(std::make_pair(metadata.pod_id_, inserted_pair.first->second));
+    ttl_counter_.insert(std::make_pair(metadata.resource_id_, 1u));
   }
   // register new timer.
   // timer = add_event(cb, timeout)
   // cb written here, [this, metadata]() -> { this->states_.remove(metadata.resource_id); }
   auto timer_ptr = tls_dispatcher.createTimer([this, metadata]() {
-    this->states_.erase(metadata.resource_id_);
+    this->ttl_counter_[metadata.resource_id_] -= 1;
+    if (ttl_counter_[metadata.resource_id_] == 0) {
+      this->states_.erase(metadata.resource_id_);
+      ttl_counter_.erase(metadata.resource_id_);
+    }
   });
   std::chrono::milliseconds ttl(metadata.ttl_ * 1000);
   timer_ptr->enableTimer(ttl);
