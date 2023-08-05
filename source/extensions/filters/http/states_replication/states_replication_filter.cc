@@ -3,6 +3,7 @@
 //
 
 #include <string>
+#include <chrono>
 
 #include "source/common/storage/storage_impl.h"
 #include "source/extensions/filters/http/states_replication/states_replication_filter.h"
@@ -16,6 +17,7 @@ namespace States {
 #define METADATA_FLAG_MASK ((1u << 16) - 1)
 
 Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHeaderMap &headers, bool end_stream) {
+  time_counter_ = std::chrono::high_resolution_clock::now();
   auto resource_id_exist = headers.get(Http::LowerCaseString("x-ftmesh-resource-id")).size();
 
   if (!resource_id_exist || end_stream) {
@@ -88,6 +90,9 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     storage_mgr->replicate(resource_id);
     is_attached_ = false;
     states_position_ = 0;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - time_counter_);
+    ENVOY_LOG(info, "internal microbenchmark time {}", static_cast<double>(duration.count() / 1000.0));
     return Http::FilterDataStatus::Continue;
   }
 }

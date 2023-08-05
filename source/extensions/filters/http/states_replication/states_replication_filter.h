@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <chrono>
 
 #include "envoy/storage/storage.h"
 
@@ -33,6 +34,7 @@ private:
   std::unique_ptr<Envoy::States::StateObject> state_obj_;
   bool is_attached_ = false;
   uint64_t states_position_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> time_counter_;
 };
 
 } // namespace States

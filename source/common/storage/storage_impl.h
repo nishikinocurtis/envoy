@@ -105,6 +105,10 @@ public:
 
   void recover(const std::string& resource_id) override;
 
+  void bench_recover(const std::string& resource_id,
+                     const std::string& bench_marker,
+                     std::chrono::time_point<std::chrono::high_resolution_clock> clock) override;
+
   // Consider supporting packed transmission.
   void recoverPacked(std::vector<std::string>&) override {}
 
@@ -138,11 +142,21 @@ public:
   // deprecated, now registered as lambda when write().
   void timedCleanUp() override {}
   // Http::AsyncClient::Callbacks
-  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&&) override {}
+  void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&& response) override {
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto bench_marker = response->headers().get(Http::LowerCaseString("x-ftmesh-bench-marker"));
+    if (bench_marker.size() != 0) {
+
+      auto start = clock_keeper_[std::string{bench_marker[0]->value().getStringView()}];
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      ENVOY_LOG(info, "benchmarking deliver time: {}ms", static_cast<double>(duration.count() / 1000.0));
+    }
+  }
   void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override {}
   void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
 
 private:
+  using MicroClock = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
   // make it async
   // consider how to make it parallel without blocking.
@@ -157,6 +171,7 @@ private:
   std::unordered_map<std::string, Event::TimerPtr> ttl_timers_;
   std::unordered_map<std::string, std::shared_ptr<StateObject>> states_;
   std::unordered_map<std::string, uint32_t> ttl_counter_;
+  std::unordered_map<std::string, MicroClock> clock_keeper_;
   WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_nam
 
   // need a optionGenerator

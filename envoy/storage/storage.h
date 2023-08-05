@@ -127,6 +127,10 @@ public:
    // Recovery port/uri can be negotiated more ahead of time.
   virtual void recover(const std::string& resource_id) PURE;
 
+  virtual void bench_recover(const std::string& resource_id,
+                             const std::string& bench_marker,
+                             std::chrono::time_point<std::chrono::high_resolution_clock> clock) PURE;
+
   // Not supporting packed transmission, just for calling convenience.
   virtual void recoverPacked(std::vector<std::string>& resource_ids) PURE;
 

@@ -246,6 +246,40 @@ void StorageImpl::recover(const std::string& resource_id) {
   }
 }
 
+void StorageImpl::bench_recover(const std::string &resource_id, const std::string &bench_marker,
+                                std::chrono::time_point<std::chrono::high_resolution_clock> clock) {
+  clock_keeper_[bench_marker] = clock;
+  auto it = states_.find(resource_id);
+
+  if (it != states_.end()) {
+    auto metadata = it->second->metadata();
+    Http::AsyncClient::RequestOptions options;
+
+    if (metadata.flags & HANDSHAKE) {
+      // handshake logic TBI
+      ENVOY_LOG(debug, "non-final port recovery not implemented");
+    } else {
+      // makeHttpCall, transfer the resource.
+      auto headers = Http::RequestHeaderMapImpl::create();
+      // populate, fill in host and path from metadata
+      headers->setHost("127.0.0.1:" + std::to_string(metadata.recover_port_));
+      headers->setCopy(Http::LowerCaseString("x-ftmesh-bench-marker"), bench_marker);
+      //headers->setCopy(Http::LowerCaseString("x-ftmesh-resource-id"), metadata.resource_id_);
+      headers->setPath(metadata.recover_uri_);
+      // how to be aware of which cluster I am sending to?
+      // actually I'm just sending to localhost...
+      auto deliver_target = local_info_.clusterName();
+#ifdef BENCHMARK_MODE
+      deliver_target = "cluster_1"; // for benchmarking use only.
+#endif
+      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
+      return;
+    }
+  } else {
+    ENVOY_LOG(debug, "resource {} not found for recovery", resource_id);
+  }
+}
+
 void StorageImpl::deactivate(const std::string &resource_id) {
   // first cancel the timer
   auto timer_old = ttl_timers_.find(resource_id);
