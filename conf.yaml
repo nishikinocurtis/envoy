@@ -62,6 +62,10 @@ static_resources:
                 domains: ["*"]
                 routes:
                 - match:
+                    prefix: "/recover"
+                  route:
+                    cluster: cluster_1
+                - match:
                     prefix: "/"
                   route:
                     cluster: cluster_0

@@ -366,6 +366,9 @@ void OwnedImpl::truncateOut(Envoy::Buffer::Instance &rhs, uint64_t position) {
 
   OwnedImpl& other = static_cast<OwnedImpl&>(rhs); // adopted from move().
   auto truncate_size = other.length_ - position;
+  if (other.length_ < position) {
+    truncate_size = other.length_;
+  }
   ENVOY_LOG(debug, "truncate_size: {} = length {} - position {}", truncate_size, other.length_, position);
   while (truncate_size > 0) {
     const uint64_t slice_size = other.slices_.back().dataSize();
