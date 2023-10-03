@@ -19,7 +19,7 @@ jobs:
       statuses: write
     steps:
     - name: Start status check
-      uses: envoyproxy/toolshed/gh-actions/status@a6e1c951217efae1ac6b2bf32c5a9729976442b8
+      uses: envoyproxy/toolshed/gh-actions/status@b8e2bd549b8dd1819e65a5a19894d7d889f19715
       with:
         authToken: ${{ secrets.GITHUB_TOKEN }}
         context: ${{ inputs.workflowName }}
