@@ -239,6 +239,7 @@ void StorageImpl::recover(const std::string& resource_id) {
       deliver_target = "cluster_1"; // for benchmarking use only.
 #endif
       makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
+      // TODO: wait for response: port to new port mapping, return the response body directly to caller
       return;
     }
   } else {

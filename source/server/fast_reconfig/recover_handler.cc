@@ -43,6 +43,7 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
     storage_ptr_->bench_recover(resource_id, time_marker, time_counter);
 #else
     storage_ptr_->recover(resource_id);
+    // TODO: parse the response from recover, compose replcaing msg, broadcast to critical connections bound to resource_id.
 #endif
   }
 

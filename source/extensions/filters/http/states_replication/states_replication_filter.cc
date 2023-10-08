@@ -76,6 +76,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   return Http::FilterHeadersStatus::StopIteration;
 }
 
+// TODO: make it stateful and capable with longer streams: recoding truncate_length and do minus each time.
 Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &data, bool end_stream) {
   if (!is_attached_) {
     return PassThroughDecoderFilter::decodeData(data, end_stream);

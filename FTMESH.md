@@ -127,3 +127,10 @@ less prioritized implementations before poster:
     Dispatcher rejects to create non-thread-safe timer
     Consider creating a dispatcher for Storage usage, which check the to-be-deleted queue
     at least one time per second, and create timer, and mount the timer to the dict
+
+## Macro Definition for Applications (C++ based)
+
+```c++
+#define FTMESH_STATE_OBJ(x) \
+  
+```
