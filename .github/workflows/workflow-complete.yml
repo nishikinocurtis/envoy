@@ -52,7 +52,7 @@ jobs:
         echo "state=${STATE}" >> "$GITHUB_OUTPUT"
       id: job
     - name: Complete status check
-      uses: envoyproxy/toolshed/gh-actions/status@a6e1c951217efae1ac6b2bf32c5a9729976442b8
+      uses: envoyproxy/toolshed/gh-actions/status@b7362787731ab93100b0cfb2c63fdab4be30182d
       with:
         authToken: ${{ secrets.GITHUB_TOKEN }}
         context: ${{ github.event.workflow.name }}
