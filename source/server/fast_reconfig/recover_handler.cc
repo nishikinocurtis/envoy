@@ -10,7 +10,6 @@
 
 #include "source/common/storage/storage_impl.h"
 
-#define RECOVER_BENCHMARK
 
 namespace Envoy {
 namespace Server {

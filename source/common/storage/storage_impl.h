@@ -156,6 +156,15 @@ public:
   void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
 
 private:
+  class RecoverInfoCallback : public Http::AsyncClient::Callbacks {
+  public:
+    RecoverInfoCallback(StorageImpl& parent) : parent_(parent) {};
+    void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&& response) override;
+    void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override {}
+    void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
+  private:
+    StorageImpl& parent_;
+  };
   using MicroClock = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
   // make it async
@@ -195,6 +204,9 @@ private:
   // maintain a quorom counter per version
   const LocalInfo::LocalInfo& local_info_;
   Upstream::ClusterManager& cm_;
+
+  // callback handler for recover
+  std::unique_ptr<RecoverInfoCallback> recover_info_callback_;
 };
 
 class StorageSingleton {

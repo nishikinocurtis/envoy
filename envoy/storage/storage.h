@@ -54,6 +54,12 @@ protected:
   StorageMetadata metadata_;
 };
 
+class RecoverRoutingInfo {
+public:
+  uint32_t _port;
+  std::string _ip;
+};
+
 class RpdsApi { // RePlication Discovery Service
 public:
   virtual ~RpdsApi() = default;

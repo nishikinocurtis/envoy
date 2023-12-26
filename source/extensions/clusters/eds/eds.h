@@ -38,7 +38,11 @@ public:
   // Upstream::Cluster
   InitializePhase initializePhase() const override { return initialize_phase_; }
 
+  void replaceHost(std::string match_address, uint32_t match_port,
+                       std::string new_address, uint32_t new_port);
+
 private:
+  void onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment);
   // Config::SubscriptionCallbacks
   void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
                       const std::string& version_info) override;

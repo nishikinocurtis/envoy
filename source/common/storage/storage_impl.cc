@@ -137,7 +137,8 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
                                    *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
 #endif
-                         local_info_(local_info), cm_(cm) {
+                         local_info_(local_info), cm_(cm),
+                         recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
@@ -225,6 +226,7 @@ void StorageImpl::recover(const std::string& resource_id) {
     if (metadata.flags & HANDSHAKE) {
       // handshake logic TBI
       ENVOY_LOG(debug, "non-final port recovery not implemented");
+      return {};
     } else {
       // makeHttpCall, transfer the resource.
       auto headers = Http::RequestHeaderMapImpl::create();
@@ -238,7 +240,7 @@ void StorageImpl::recover(const std::string& resource_id) {
 #ifdef BENCHMARK_MODE
       deliver_target = "cluster_1"; // for benchmarking use only.
 #endif
-      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
+      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *recover_info_callback_.get());
       // TODO: wait for response: port to new port mapping, return the response body directly to caller
       return;
     }
@@ -327,6 +329,43 @@ Http::AsyncClient::Request* StorageImpl::makeHttpCall(
 }
 
 std::shared_ptr<Storage> StorageSingleton::ptr_ = nullptr;
+
+void StorageImpl::RecoverInfoCallback::onSuccess(const Http::AsyncClient::Request &,
+                                                 Http::ResponseMessagePtr &&response) {
+  // assume response is text/html <ip/domain>:port.
+  auto new_svc_address = response->bodyAsString();
+  auto sep_pos = new_svc_address.find_last_of(":");
+
+
+  if (sep_pos != std::string::npos) {
+    auto resource_id = response->headers().get(Http::LowerCaseString("x-ftmesh-resource-id"));
+    auto location = new_svc_address.substr(0, sep_pos);
+    auto port = std::stoi(new_svc_address.substr(sep_pos+1));
+    auto origin_obj = parent_.states_.find(std::string{resource_id[0]->value().getStringView()});
+    if (origin_obj != parent_.states_.end()) {
+      auto& obj_val = origin_obj->second->metadata();
+      std::stringstream msg_ss("");
+      msg_ss << obj_val.svc_id_ << "\n"
+             << obj_val.svc_ip_ << "\n"
+             << obj_val.svc_port_ << "\n"
+             << location << "\n"
+             << port << "\n";
+      auto msg = msg_ss.str();
+      Http::AsyncClient::RequestOptions options;
+
+      // send msg to others;
+      std::for_each(parent_.target_clusters_->begin(), parent_.target_clusters_->end(),
+                    [&, this](const std::string& cluster) -> void {
+        auto headers = Http::RequestHeaderMapImpl::create();
+        headers->setHost("127.0.0.1:9903");
+        headers->setPath("/rr_endpoint");
+        auto data = Buffer::OwnedImpl(msg);
+        this->parent_.makeHttpCall(cluster, std::move(headers), data, options, *this);
+      });
+    }
+  }
+
+}
 
 }
 }

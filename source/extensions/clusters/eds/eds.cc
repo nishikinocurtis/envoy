@@ -40,6 +40,30 @@ EdsClusterImpl::EdsClusterImpl(Server::Configuration::ServerFactoryContext& serv
 
 void EdsClusterImpl::startPreInit() { subscription_->start({edsServiceName()}); }
 
+void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port, std::string new_address,
+                                     uint32_t new_port) {
+  auto new_cla = *cluster_load_assignment_.get();
+  bool flg = false;
+  for (auto& locality : new_cla.endpoints()) {
+    if (locality.lb_endpoints_size() > 0) {
+      for (auto& ep : locality.lb_endpoints()) {
+        auto& addr = ep.address();
+        if (addr.has_socket_address()
+            && !addr.socket_address().address().compare(match_address)
+            && addr.socket_address().port_value() == match_port) {
+          addr.socket_address().set_address(new_address);
+          addr.socket_address().set_port_value(new_port);
+          flg = true;
+          break;
+        }
+      }
+    }
+  }
+  if (flg) {
+    onConfigUpdateSingleResource(new_cla);
+  }
+}
+
 void EdsClusterImpl::BatchUpdateHelper::batchUpdate(PrioritySet::HostUpdateCb& host_update_cb) {
   absl::flat_hash_set<std::string> all_new_hosts;
   PriorityStateManager priority_state_manager(parent_, parent_.local_info_, &host_update_cb);
@@ -140,14 +164,8 @@ void EdsClusterImpl::BatchUpdateHelper::updateLocalityEndpoints(
   all_new_hosts.emplace(address_as_string);
 }
 
-void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
-                                    const std::string&) {
-  if (!validateUpdateSize(resources.size())) {
-    return;
-  }
-  envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment =
-      dynamic_cast<const envoy::config::endpoint::v3::ClusterLoadAssignment&>(
-          resources[0].get().resource());
+void EdsClusterImpl::onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment) {
+
   if (cluster_load_assignment.cluster_name() != edsServiceName()) {
     throw EnvoyException(fmt::format("Unexpected EDS cluster (expecting {}): {}", edsServiceName(),
                                      cluster_load_assignment.cluster_name()));
@@ -242,6 +260,15 @@ void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef
 
   BatchUpdateHelper helper(*this, *used_load_assignment);
   priority_set_.batchHostUpdate(helper);
+}
+
+void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
+                                    const std::string&) {
+  if (!validateUpdateSize(resources.size())) {
+    return;
+  }
+  onConfigUpdateSingleResource(dynamic_cast<const envoy::config::endpoint::v3::ClusterLoadAssignment&>(
+                                         resources[0].get().resource());
 }
 
 void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
