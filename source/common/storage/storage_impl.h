@@ -136,6 +136,13 @@ public:
     }
   }
 
+  void addPriorityUpstream(const std::string& cluster) {
+    priority_upstreams_->push_back(cluster);
+  }
+  void shiftPriorityUpstreams(std::unique_ptr<std::list<std::string>>&& cluster_list) {
+    priority_upstreams_ = std::move(cluster_list);
+  }
+
   void beginTargetUpdate() override {}
   void endTargetUpdate() override {}
 
@@ -198,6 +205,8 @@ private:
   RpdsApiPtr rpds_api_;
 
   std::unique_ptr<std::list<std::string>> target_clusters_;
+  std::unique_ptr<std::list<std::string>> priority_upstreams_;
+  std::unique_ptr<std::list<std::string>> static_upstreams_;
 
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()

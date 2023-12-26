@@ -72,14 +72,16 @@ RpdsApiImpl::RpdsApiImpl(const xds::core::v3::ResourceLocator* rpds_resource_loc
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &resources,
                                  const std::string &version_info) {
   version_info_ = version_info;
-  //TODO: TBI
   // call the str_manager_->shiftTargetClusters
+  auto replicator_config =
+      dynamic_cast<const Replicator&>(resources[0].get());
   auto new_target_list = std::make_unique<std::list<std::string>>();
 
   str_manager_->beginTargetUpdate();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
-  for (const auto& target_to_add : resources) {
+  // TODO: Add upstream update logic, fix sync target logic.
+  for (const auto& target_to_add : replicator_config.target_cluster_names()) {
     std::string target;
 
     // cast to target
@@ -190,6 +192,11 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
 }
 
 void StorageImpl::replicate(const std::string &resource_id) {
+  // TODO: modify logic, so that the replication happens in the HTTP filter
+  // TODO: add a latest log pool to be replicated.
+  // TODO: new msg should not use headers as metadata field, as there will be multiple logs
+  // TODO: leave the parsing work to StorageImpl.
+
   // makeHttpCall
   auto it = states_.find(resource_id);
 
