@@ -122,13 +122,17 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   // also, don't bother validating if the request is flowing to target: simply flush all.
   // all these need to be done in decoder header:
   // then no race, just save the scene (as a marker), and flush until that marker: no inconsistency.
+  buf_status_ = 0;
   if (state_mode_ & 1) {
     // populate buffer and trigger force flush
   } else if (headers.Host() /* target node in list */) {
     headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "0");
     // simulate, populate buffer and trigger attached flush
+    // how to trigger: validate the host
+    // if host match: content-length state_position + flush size
   } else {
     // simulate, populate buffer and trigger force flush, consider merge with branch 1.
+    // otherwise: force flush, separate request
   }
 
   is_attached_ = true;
@@ -149,8 +153,14 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     // storage_mgr->write(std::move(state_obj_), callback->dispatcher());
     auto write_status = storage_mgr->write_lsm(std::move(state_obj_), callback->dispatcher());
     if (!write_status) {
-
+      // state_mode_ == 1 (sync) and not exceeding: populate and drop all
+      // state_mode_ == 0 (local) and not exceeding: by host, if host match, attach the ring buf to the end
+      // otherwise: populate and drop all
     } else {
+      // state_mode_ == 1 (sync) and exceeding: flushed, drop all here
+      // state_mode_ == 0 (local) and exceeding: also by host: if host match, flush here
+      // otherwise, drop all.
+
       ENVOY_LOG(debug, "mutating headers, old content length: {}, states_position: {}, new content length: {}",
                 content_length, states_position_, new_content_length);
       headers.setContentLength(states_position_);
