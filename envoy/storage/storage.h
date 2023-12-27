@@ -105,6 +105,18 @@ public:
   virtual void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher //, some bytes array, or object
   ) PURE;
 
+  /*
+   * Write raw bytes (plus metadata, consider fixing the header size) to the lsm ring buf data structure
+   * Return status code: if exceed the siz limit: trigger replicate() itself, and return 1
+   * Otherwise return 0
+   */
+  virtual int32_t write_lsm(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) PURE;
+
+  /*
+   * Simulate the result of write_lsm.
+   */
+  virtual int32_t validate_write_lsm(int32_t siz) PURE;
+
   /**
    * replicate the StateObject identified by the resource_id to other sidecars.
    * The range is specified other ways.
@@ -168,9 +180,11 @@ public:
   // frequently, and the replication process itself consumes O(n) time).
   virtual void addTargetCluster(const std::string& cluster) PURE;
 
-  virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) PURE;
+  virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
+                                   std::unique_ptr<std::set<std::string>>&& priority_ups) PURE;
 
   virtual void removeTargetCluster(const std::string& cluster) PURE;
+
 
 protected:
   virtual void timedCleanUp() PURE;

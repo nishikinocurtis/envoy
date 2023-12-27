@@ -76,19 +76,20 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
   auto replicator_config =
       dynamic_cast<const Replicator&>(resources[0].get());
   auto new_target_list = std::make_unique<std::list<std::string>>();
+  auto new_priority_ups = std::make_unique<std::set<std::string>>();
 
   str_manager_->beginTargetUpdate();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
   // TODO: Add upstream update logic, fix sync target logic.
   for (const auto& target_to_add : replicator_config.target_cluster_names()) {
-    std::string target;
-
-    // cast to target
-    new_target_list->push_back(target);
+    new_target_list->push_back(target_to_add);
+  }
+  for (const auto& ups : replicator_config.priority_upstream_names()) {
+    new_priority_ups->insert(ups);
   }
 #pragma clang diagnostic pop
-  str_manager_->shiftTargetClusters(std::move(new_target_list));
+  str_manager_->shiftTargetClusters(std::move(new_target_list), std::move(new_priority_ups));
 
   str_manager_->endTargetUpdate();
 }
@@ -133,14 +134,16 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
 StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server,
                          const xds::core::v3::ResourceLocator*,
                          const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
-                         Upstream::ClusterManager &cm)
+                         Upstream::ClusterManager &cm,
+                         uint32_t lsm_ring_buf_siz = 1024)
                          : dispatcher_(dispatcher), server_(server),
 #ifndef BENCHMARK_MODE
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
                                    *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
 #endif
                          local_info_(local_info), cm_(cm),
-                         recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)) {
+                         recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)),
+                         lsm_pool_(std::make_unique<std::vector<StateObject>>(lsm_ring_buf_siz)){
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");

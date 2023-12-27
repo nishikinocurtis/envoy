@@ -90,7 +90,8 @@ public:
               const xds::core::v3::ResourceLocator* rpds_resource_locator,
               const envoy::config::storage::v3::Storage& storage_config,
               const LocalInfo::LocalInfo& local_info,
-              Upstream::ClusterManager& cm);
+              Upstream::ClusterManager& cm,
+              uint32_t lsm_ring_buf_siz);
 
   void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
@@ -124,8 +125,10 @@ public:
   void addTargetCluster(const std::string& cluster) override {
     target_clusters_->push_back(cluster);
   }
-  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override {
-    target_clusters_ = std::move(cluster_list);
+  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
+                           std::unique_ptr<std::set<std::string>>&& priority_ups) override {
+    target_clusters_ = std::move(sync_target);
+    priority_upstreams_ = std::move(priority_ups);
   }
   void removeTargetCluster(const std::string& cluster) override {
     for (auto iter = target_clusters_->begin(); iter != target_clusters_->end(); ++iter) {
@@ -137,9 +140,9 @@ public:
   }
 
   void addPriorityUpstream(const std::string& cluster) {
-    priority_upstreams_->push_back(cluster);
+    priority_upstreams_->insert(cluster);
   }
-  void shiftPriorityUpstreams(std::unique_ptr<std::list<std::string>>&& cluster_list) {
+  void shiftPriorityUpstreams(std::unique_ptr<std::set<std::string>>&& cluster_list) {
     priority_upstreams_ = std::move(cluster_list);
   }
 
@@ -190,6 +193,11 @@ private:
   std::unordered_map<std::string, MicroClock> clock_keeper_;
   WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_nam
 
+  std::unique_ptr<std::vector<StateObject>> lsm_pool_; // construct a ring_buf like lsm.
+  // change it to buffer, with maximum size, when exceeding do flush
+  // set up a timer, when exceeding do flush
+  // otherwise, flush the buffer at every filter execution when targeting sync_target_.
+
   // need a optionGenerator
   // for AsyncClient.send() usage.
   void populateRequestOption();
@@ -205,7 +213,7 @@ private:
   RpdsApiPtr rpds_api_;
 
   std::unique_ptr<std::list<std::string>> target_clusters_;
-  std::unique_ptr<std::list<std::string>> priority_upstreams_;
+  std::unique_ptr<std::set<std::string>> priority_upstreams_;
   std::unique_ptr<std::list<std::string>> static_upstreams_;
 
   // need a ClusterManager
