@@ -143,8 +143,12 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
 #endif
                          local_info_(local_info), cm_(cm),
                          recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)),
-                         lsm_pool_(std::make_unique<std::vector<StateObject>>(lsm_ring_buf_siz)){
+                         ring_buf_(std::make_unique<Buffer::OwnedImpl>()), max_buf_(lsm_ring_buf_siz), latest_(0),
+                         watermark_(0.75 * max_buf_), wm_proportion_(watermark_){
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+  ring_buf_->reserveSingleSlice(lsm_ring_buf_siz, false);
+  memset(progress_, 0, sizeof progress_);
+
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
   target_clusters_ = std::make_unique<std::list<std::string>>();
@@ -192,6 +196,46 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
 
   // register to a unordered_map.
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
+}
+
+int32_t StorageImpl::validate_write_lsm(int32_t siz) {
+
+}
+
+std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<StateObject> &&obj,
+                                                                Event::Dispatcher &tls_dispatcher, int32_t target) {
+  // two things need to be maintained:
+  // each target's progress
+  // total length
+  auto& buf_obj = obj->getObject();
+  if (latest_ + buf_obj.length() >= watermark_) { // modify the condition
+    // flush all
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    watermark_ = (watermark_ + wm_proportion_) % max_buf_;
+    progress_[0] = progress_[1] = latest_;
+
+    replicate("all-buffer");
+    return nullptr; // this branch should return 0: no attach
+  } else {
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    ring_buf_->move(buf_obj);
+
+
+    // here also modify the condition
+    watermark_ = watermark_ < progress_[target ^ 1] + wm_proportion_
+        ? (progress_[target ^ 1] + wm_proportion_) % max_buf_ : watermark_;
+
+    auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
+    ring_buf_->copyOut(progress_[target], latest_ - progress_[target], ); // copy out to returned_buf
+    progress_[target] = latest_;
+
+    return std::move(returned_buf); // this branch should return returned_buf.length().
+  }
+}
+
+int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &tls_dispatcher) {
+
 }
 
 void StorageImpl::replicate(const std::string &resource_id) {

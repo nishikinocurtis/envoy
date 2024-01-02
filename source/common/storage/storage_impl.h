@@ -95,6 +95,14 @@ public:
 
   void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
+  std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
+                                                     Event::Dispatcher& tls_dispatcher,
+                                                     int32_t target) override;
+
+  int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
+
+  int32_t validate_write_lsm(int32_t siz) override;
+
   // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;
 
@@ -197,6 +205,9 @@ private:
   // change it to buffer, with maximum size, when exceeding do flush
   // set up a timer, when exceeding do flush
   // otherwise, flush the buffer at every filter execution when targeting sync_target_.
+
+  Buffer::InstancePtr ring_buf_;
+  uint64_t max_buf_, latest_, watermark_, wm_proportion_, progress_[10];
 
   // need a optionGenerator
   // for AsyncClient.send() usage.

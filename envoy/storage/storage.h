@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "envoy/config/core/v3/config_source.pb.h"
 #include "envoy/event/dispatcher.h"
@@ -108,9 +109,13 @@ public:
   /*
    * Write raw bytes (plus metadata, consider fixing the header size) to the lsm ring buf data structure
    * Return status code: if exceed the siz limit: trigger replicate() itself, and return 1
-   * Otherwise return 0
+   * Otherwise return nullopt
    */
-  virtual int32_t write_lsm(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) PURE;
+  virtual std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
+                                                             Event::Dispatcher& tls_dispatcher,
+                                                             int32_t target) PURE;
+
+  virtual int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) PURE;
 
   /*
    * Simulate the result of write_lsm.

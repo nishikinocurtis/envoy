@@ -35,7 +35,8 @@ private:
   std::unique_ptr<Envoy::States::StateObject> state_obj_;
   bool is_attached_ = false;
   uint64_t states_position_;
-  uint32_t state_mode_, buf_status_;
+  uint32_t state_mode_;
+  int32_t buf_status_;
   std::chrono::time_point<std::chrono::high_resolution_clock> time_counter_;
 };
 

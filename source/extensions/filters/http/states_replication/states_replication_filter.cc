@@ -116,6 +116,11 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
       std::stoul(std::string{headers.get(
           Http::LowerCaseString("x-ftmesh-mode"))[0]->value().getStringView()}, nullptr);
 
+  auto state_length = std::stoul(std::string{headers.ContentLength()->value().getStringView()}, nullptr)
+                      - states_position_;
+
+  auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
+
   // need to simulate the ring buf siz here, to determine the header
   // auto write_status = storage_mgr->validate !! race condition, better done at once
   // not so frequently, as usually only two target.
@@ -125,14 +130,22 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   buf_status_ = 0;
   if (state_mode_ & 1) {
     // populate buffer and trigger force flush
+    storage_mgr->validate_write_lsm(state_length); // return -1 here
+    buf_status_ = -1;
+    headers.setContentLength(states_position_);
   } else if (headers.Host() /* target node in list */) {
-    headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "0");
+    headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "1");
     // simulate, populate buffer and trigger attached flush
+    buf_status_ = storage_mgr->validate_write_lsm(state_length);
     // how to trigger: validate the host
     // if host match: content-length state_position + flush size
+    headers.setContentLength(states_position_ + buf_status_);
   } else {
     // simulate, populate buffer and trigger force flush, consider merge with branch 1.
     // otherwise: force flush, separate request
+    storage_mgr->validate_write_lsm(state_length); // return -1 here
+    buf_status_ = -1;
+    headers.setContentLength(states_position_);
   }
 
   is_attached_ = true;
@@ -151,19 +164,21 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     auto callback = decoder_callbacks_;
     auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
     // storage_mgr->write(std::move(state_obj_), callback->dispatcher());
-    auto write_status = storage_mgr->write_lsm(std::move(state_obj_), callback->dispatcher());
-    if (!write_status) {
+    // auto write_status = storage_mgr->write_lsm(std::move(state_obj_), callback->dispatcher());
+    if (~buf_status_) { // not -1: attach and replicate, state_mode must be 0
+      ASSERT(state_mode_ == 0);
       // state_mode_ == 1 (sync) and not exceeding: populate and drop all
       // state_mode_ == 0 (local) and not exceeding: by host, if host match, attach the ring buf to the end
       // otherwise: populate and drop all
-    } else {
+      auto& to_be_synced = storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher());
+      data.move(to_be_synced); // header already set before
+    } else { // buf_status_ == -1, no need to attach
       // state_mode_ == 1 (sync) and exceeding: flushed, drop all here
       // state_mode_ == 0 (local) and exceeding: also by host: if host match, flush here
       // otherwise, drop all.
+      storage_mgr->write_lsm_force(std::move(state_obj_), callback->dispatcher());
 
-      ENVOY_LOG(debug, "mutating headers, old content length: {}, states_position: {}, new content length: {}",
-                content_length, states_position_, new_content_length);
-      headers.setContentLength(states_position_);
+      // headers.setContentLength(states_position_);
     }
     // storage_mgr->replicate(resource_id);
     is_attached_ = false;
