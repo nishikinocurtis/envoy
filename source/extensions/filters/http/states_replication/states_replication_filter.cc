@@ -133,7 +133,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
     storage_mgr->validate_write_lsm(state_length); // return -1 here
     buf_status_ = -1;
     headers.setContentLength(states_position_);
-  } else if (headers.Host() /* target node in list */) {
+  } else if (target_no_ = storage_mgr->validate_target(headers.Host()->value().getStringView()) /* target node in list */) {
     headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "1");
     // simulate, populate buffer and trigger attached flush
     buf_status_ = storage_mgr->validate_write_lsm(state_length);
@@ -170,8 +170,8 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
       // state_mode_ == 1 (sync) and not exceeding: populate and drop all
       // state_mode_ == 0 (local) and not exceeding: by host, if host match, attach the ring buf to the end
       // otherwise: populate and drop all
-      auto& to_be_synced = storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher());
-      data.move(to_be_synced); // header already set before
+      auto to_be_synced = storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher(), target_no_ - 1);
+      data.move(*to_be_synced); // header already set before
     } else { // buf_status_ == -1, no need to attach
       // state_mode_ == 1 (sync) and exceeding: flushed, drop all here
       // state_mode_ == 0 (local) and exceeding: also by host: if host match, flush here

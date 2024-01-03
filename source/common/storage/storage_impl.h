@@ -93,6 +93,8 @@ public:
               Upstream::ClusterManager& cm,
               uint32_t lsm_ring_buf_siz);
 
+  int32_t validate_target(const std::string_view& host) const override;
+
   void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
   std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
@@ -101,7 +103,7 @@ public:
 
   int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
-  int32_t validate_write_lsm(int32_t siz) override;
+  int32_t validate_write_lsm(int32_t siz, int32_t target) const override;
 
   // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;
@@ -134,9 +136,11 @@ public:
     target_clusters_->push_back(cluster);
   }
   void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
-                           std::unique_ptr<std::set<std::string>>&& priority_ups) override {
+                           std::unique_ptr<std::set<std::string>>&& priority_ups,
+                           std::unique_ptr<std::list<std::string>>&& sync_target_host) override {
     target_clusters_ = std::move(sync_target);
     priority_upstreams_ = std::move(priority_ups);
+    target_hosts_ = std::move(sync_target_host);
   }
   void removeTargetCluster(const std::string& cluster) override {
     for (auto iter = target_clusters_->begin(); iter != target_clusters_->end(); ++iter) {
@@ -224,6 +228,7 @@ private:
   RpdsApiPtr rpds_api_;
 
   std::unique_ptr<std::list<std::string>> target_clusters_;
+  std::unique_ptr<std::list<std::string>> target_hosts_;
   std::unique_ptr<std::set<std::string>> priority_upstreams_;
   std::unique_ptr<std::list<std::string>> static_upstreams_;
 

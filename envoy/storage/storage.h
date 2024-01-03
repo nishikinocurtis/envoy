@@ -94,6 +94,9 @@ using RpdsApiPtr = std::shared_ptr<RpdsApi>;
 class Storage : public std::enable_shared_from_this<Storage> {
 public:
   virtual ~Storage() = default;
+
+  virtual int32_t validate_target(const std::string_view& host) const PURE;
+
   /**
    * create or update a StateObject.
    * Fired by StateReplicationFilter on outgoing request,
@@ -120,7 +123,7 @@ public:
   /*
    * Simulate the result of write_lsm.
    */
-  virtual int32_t validate_write_lsm(int32_t siz) PURE;
+  virtual int32_t validate_write_lsm(int32_t siz, int32_t target) const PURE;
 
   /**
    * replicate the StateObject identified by the resource_id to other sidecars.
@@ -186,7 +189,8 @@ public:
   virtual void addTargetCluster(const std::string& cluster) PURE;
 
   virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
-                                   std::unique_ptr<std::set<std::string>>&& priority_ups) PURE;
+                                   std::unique_ptr<std::set<std::string>>&& priority_ups,
+                                   std::unique_ptr<std::list<std::string>>&& sync_target_host) PURE;
 
   virtual void removeTargetCluster(const std::string& cluster) PURE;
 

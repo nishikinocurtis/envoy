@@ -77,6 +77,7 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
       dynamic_cast<const Replicator&>(resources[0].get());
   auto new_target_list = std::make_unique<std::list<std::string>>();
   auto new_priority_ups = std::make_unique<std::set<std::string>>();
+  auto new_host_list = std::make_unique<std::list<std::string>>();
 
   str_manager_->beginTargetUpdate();
 #pragma clang diagnostic push
@@ -87,6 +88,9 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
   }
   for (const auto& ups : replicator_config.priority_upstream_names()) {
     new_priority_ups->insert(ups);
+  }
+  for (const auto& target_host : replicator_config.target_host_names()) {
+    new_host_list->push_back(target_host);
   }
 #pragma clang diagnostic pop
   str_manager_->shiftTargetClusters(std::move(new_target_list), std::move(new_priority_ups));
@@ -157,6 +161,17 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
 #endif
 }
 
+int32_t StorageImpl::validate_target(const std::string_view& host) const {
+  int iter = 0;
+  for (const auto& h : *target_hosts_) {
+    iter++;
+    if (!host.compare(h)) {
+      break;
+    }
+  }
+  return iter;
+}
+
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) {
   StorageMetadata metadata = obj->metadata();
 
@@ -198,12 +213,11 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
 }
 
-int32_t StorageImpl::validate_write_lsm(int32_t siz) {
-  if ((latest_ <= watermark_ && latest_ + siz >= watermark_) ||
-      (latest_ > watermark_ && (latest_ + siz) % max_buf_ >= watermark_)) {
+int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) {
+  if (target == -1) {
     return -1;
   } else {
-    return latest_ + siz - progress_[0]; // target
+    return (latest_ + siz - progress_[target] + max_buf_) % max_buf_;
   }
 }
 
@@ -221,7 +235,7 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
     watermark_ = (watermark_ + wm_proportion_) % max_buf_;
     progress_[0] = progress_[1] = latest_;
 
-    replicate("all-buffer-except-target");
+    replicate(target ? "all-buffer/0" : "all-buffer/1");
     return nullptr; // this branch should return 0: no attach
   } else {
     latest_ = (latest_ + buf_obj.length()) % max_buf_;
@@ -272,6 +286,40 @@ void StorageImpl::replicate(const std::string &resource_id) {
   // TODO: add a latest log pool to be replicated.
   // TODO: new msg should not use headers as metadata field, as there will be multiple logs
   // TODO: leave the parsing work to StorageImpl.
+
+  if (resource_id.find("all-buffer") != std::string::npos) {
+    Http::AsyncClient::RequestOptions options;
+
+    auto excluded = -1;
+
+    if (resource_id.length() != 8) {
+      excluded = resource_id.back() == '0' ? 0 : 1;
+    }
+
+    int iter = 0;
+    uint64_t drain_siz = 0;
+
+    for (const auto& target : *target_clusters_) {
+      if (iter == excluded) { iter++; continue; }
+
+      auto headers = Http::RequestHeaderMapImpl::create();
+      headers->setPath("/replicate_single");
+      auto flush_buf = std::make_unique<Buffer::OwnedImpl>();
+      ring_buf_->copyOutToBuffer(progress_[iter], latest_ - progress_[iter], *flush_buf);
+      makeHttpCall(target, std::move(headers),
+                   *flush_buf, options, *this);
+
+      drain_siz = std::max(drain_siz, uint64_t(latest_ - progress_[iter])); // need to deal with ring_buf_
+      progress_[iter] = latest_;
+
+      iter++;
+    }
+
+    watermark_ = (latest_ + wm_proportion_) % max_buf_;
+    ring_buf_->drain(drain_siz);
+
+    return;
+  }
 
   // makeHttpCall
   auto it = states_.find(resource_id);

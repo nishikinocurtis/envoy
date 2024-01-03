@@ -36,7 +36,7 @@ private:
   bool is_attached_ = false;
   uint64_t states_position_;
   uint32_t state_mode_;
-  int32_t buf_status_;
+  int32_t buf_status_, target_no_;
   std::chrono::time_point<std::chrono::high_resolution_clock> time_counter_;
 };
 

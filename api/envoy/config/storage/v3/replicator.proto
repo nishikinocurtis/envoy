@@ -20,4 +20,5 @@ message Replicator {
   // to be included in DiscoveryResponse.resources
   repeated string target_cluster_names = 2;
   repeated string priority_upstream_names = 3;
+  repeated string target_host_names = 4;
 }
