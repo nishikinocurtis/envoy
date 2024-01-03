@@ -199,7 +199,12 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
 }
 
 int32_t StorageImpl::validate_write_lsm(int32_t siz) {
-
+  if ((latest_ <= watermark_ && latest_ + siz >= watermark_) ||
+      (latest_ > watermark_ && (latest_ + siz) % max_buf_ >= watermark_)) {
+    return -1;
+  } else {
+    return latest_ + siz - progress_[0]; // target
+  }
 }
 
 std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<StateObject> &&obj,
@@ -208,14 +213,15 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
   // each target's progress
   // total length
   auto& buf_obj = obj->getObject();
-  if (latest_ + buf_obj.length() >= watermark_) { // modify the condition
+  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
+    (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) { // TODO: modify the condition
     // flush all
     ring_buf_->move(buf_obj);
     latest_ = (latest_ + buf_obj.length()) % max_buf_;
     watermark_ = (watermark_ + wm_proportion_) % max_buf_;
     progress_[0] = progress_[1] = latest_;
 
-    replicate("all-buffer");
+    replicate("all-buffer-except-target");
     return nullptr; // this branch should return 0: no attach
   } else {
     latest_ = (latest_ + buf_obj.length()) % max_buf_;
@@ -223,19 +229,42 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
 
 
     // here also modify the condition
-    watermark_ = watermark_ < progress_[target ^ 1] + wm_proportion_
-        ? (progress_[target ^ 1] + wm_proportion_) % max_buf_ : watermark_;
+    watermark_ = (progress_[target ^ 1] + wm_proportion_) % max_buf_;
 
     auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
-    ring_buf_->copyOut(progress_[target], latest_ - progress_[target], ); // copy out to returned_buf
+    // auto dest_slice = returned_buf->reserveSingleSlice(latest_ - progress_[target], true);
+    // auto copy_temp = new char[latest_ - progress_[target]]; // this impl needs to be refined as repeatedly allocating new slices in the heap.
+    // which is also copied out later.
+    // modify Buffer so that it can be used as a copy destination.
+    ring_buf_->copyOutToBuffer(progress_[target], latest_ - progress_[target], *returned_buf.get()); // copy out to returned_buf
+    // returned_buf->add(copy_temp, latest_ - progress_[target]);
+    ring_buf_->move(buf_obj);
     progress_[target] = latest_;
+
+    // delete copy_temp[];
 
     return std::move(returned_buf); // this branch should return returned_buf.length().
   }
 }
 
 int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &tls_dispatcher) {
+  auto& buf_obj = obj->getObject();
+  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
+      (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) {
+    // flush
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    watermark_ = (watermark_ + wm_proportion_) % max_buf_;
+    progress_[0] = progress_[1] = latest_;
 
+    replicate("all-buffer");
+    return 1;
+  } else {
+    // insert only
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    return 0;
+  }
 }
 
 void StorageImpl::replicate(const std::string &resource_id) {
