@@ -91,7 +91,7 @@ public:
               const envoy::config::storage::v3::Storage& storage_config,
               const LocalInfo::LocalInfo& local_info,
               Upstream::ClusterManager& cm,
-              uint32_t lsm_ring_buf_siz);
+              uint32_t lsm_ring_buf_siz = 1024u);
 
   int32_t validate_target(const std::string_view& host) const override;
 

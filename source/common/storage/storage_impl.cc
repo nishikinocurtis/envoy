@@ -139,7 +139,7 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
                          const xds::core::v3::ResourceLocator*,
                          const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm,
-                         uint32_t lsm_ring_buf_siz = 1024)
+                         uint32_t lsm_ring_buf_siz)
                          : dispatcher_(dispatcher), server_(server),
 #ifndef BENCHMARK_MODE
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),

@@ -108,6 +108,10 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   // there will be two additional headers: x-ftmesh-mode, x-ftmesh-length
   // local-pos means there's only the state from the service, the buffer need to be flushed
   // sync-pos means all the state need to be replicated, the buffer need to be populated
+  if (end_stream) {
+    is_attached_ = false;
+    return Http::FilterHeadersStatus::Continue;
+  }
 
   states_position_ =
       std::stoull(std::string{headers.get(
@@ -130,20 +134,20 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   buf_status_ = 0;
   if (state_mode_ & 1) {
     // populate buffer and trigger force flush
-    storage_mgr->validate_write_lsm(state_length); // return -1 here
+    storage_mgr->validate_write_lsm(state_length, -1); // return -1 here
     buf_status_ = -1;
     headers.setContentLength(states_position_);
-  } else if (target_no_ = storage_mgr->validate_target(headers.Host()->value().getStringView()) /* target node in list */) {
+  } else if ((target_no_ = storage_mgr->validate_target(headers.Host()->value().getStringView())) /* target node in list */) {
     headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "1");
     // simulate, populate buffer and trigger attached flush
-    buf_status_ = storage_mgr->validate_write_lsm(state_length);
+    buf_status_ = storage_mgr->validate_write_lsm(state_length, target_no_);
     // how to trigger: validate the host
     // if host match: content-length state_position + flush size
     headers.setContentLength(states_position_ + buf_status_);
   } else {
     // simulate, populate buffer and trigger force flush, consider merge with branch 1.
     // otherwise: force flush, separate request
-    storage_mgr->validate_write_lsm(state_length); // return -1 here
+    storage_mgr->validate_write_lsm(state_length, -1); // return -1 here
     buf_status_ = -1;
     headers.setContentLength(states_position_);
   }
@@ -152,6 +156,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
 
   // always populate the buffer with body
   // but only flush when local and cluster match
+  return Http::FilterHeadersStatus::StopIteration;
 }
 
 Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &data, bool end_stream) {

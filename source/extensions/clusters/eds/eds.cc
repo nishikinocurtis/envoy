@@ -47,7 +47,7 @@ void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port,
   for (auto& locality : new_cla.endpoints()) {
     if (locality.lb_endpoints_size() > 0) {
       for (auto& ep : locality.lb_endpoints()) {
-        auto& addr = ep.address();
+        auto addr = ep.endpoint().mutable_address(); // TODO: require syntax modification
         if (addr.has_socket_address()
             && !addr.socket_address().address().compare(match_address)
             && addr.socket_address().port_value() == match_port) {
@@ -268,7 +268,7 @@ void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef
     return;
   }
   onConfigUpdateSingleResource(dynamic_cast<const envoy::config::endpoint::v3::ClusterLoadAssignment&>(
-                                         resources[0].get().resource());
+                                         resources[0].get().resource()));
 }
 
 void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
