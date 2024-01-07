@@ -93,7 +93,7 @@ void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &
     new_host_list->push_back(target_host);
   }
 #pragma clang diagnostic pop
-  str_manager_->shiftTargetClusters(std::move(new_target_list), std::move(new_priority_ups));
+  str_manager_->shiftTargetClusters(std::move(new_target_list), std::move(new_priority_ups), std::move(new_host_list));
 
   str_manager_->endTargetUpdate();
 }
@@ -145,10 +145,9 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
                                    *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
 #endif
-                         local_info_(local_info), cm_(cm),
-                         recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)),
                          ring_buf_(std::make_unique<Buffer::OwnedImpl>()), max_buf_(lsm_ring_buf_siz), latest_(0),
-                         watermark_(0.75 * max_buf_), wm_proportion_(watermark_){
+                         watermark_(0.75 * max_buf_), wm_proportion_(watermark_),
+                         local_info_(local_info), cm_(cm), recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
   ring_buf_->reserveSingleSlice(lsm_ring_buf_siz, false);
   memset(progress_, 0, sizeof progress_);
@@ -213,7 +212,7 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
 }
 
-int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) {
+int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) const {
   if (target == -1) {
     return -1;
   } else {
@@ -222,7 +221,7 @@ int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) {
 }
 
 std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<StateObject> &&obj,
-                                                                Event::Dispatcher &tls_dispatcher, int32_t target) {
+                                                                Event::Dispatcher &, int32_t target) {
   // two things need to be maintained:
   // each target's progress
   // total length
@@ -261,7 +260,7 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
   }
 }
 
-int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &tls_dispatcher) {
+int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &) {
   auto& buf_obj = obj->getObject();
   if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
       (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) {
@@ -357,7 +356,7 @@ void StorageImpl::recover(const std::string& resource_id) {
     if (metadata.flags & HANDSHAKE) {
       // handshake logic TBI
       ENVOY_LOG(debug, "non-final port recovery not implemented");
-      return {};
+      return;
     } else {
       // makeHttpCall, transfer the resource.
       auto headers = Http::RequestHeaderMapImpl::create();

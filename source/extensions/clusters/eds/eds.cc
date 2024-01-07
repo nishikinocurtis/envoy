@@ -44,15 +44,15 @@ void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port,
                                      uint32_t new_port) {
   auto new_cla = *cluster_load_assignment_.get();
   bool flg = false;
-  for (auto& locality : new_cla.endpoints()) {
+  for (auto& locality : *new_cla.mutable_endpoints()) {
     if (locality.lb_endpoints_size() > 0) {
-      for (auto& ep : locality.lb_endpoints()) {
-        auto addr = ep.endpoint().mutable_address(); // TODO: require syntax modification
-        if (addr.has_socket_address()
-            && !addr.socket_address().address().compare(match_address)
-            && addr.socket_address().port_value() == match_port) {
-          addr.socket_address().set_address(new_address);
-          addr.socket_address().set_port_value(new_port);
+      for (auto& ep : *locality.mutable_lb_endpoints()) {
+        auto addr = ep.mutable_endpoint()->mutable_address(); // TODO: require syntax modification
+        if (addr->has_socket_address()
+            && !addr->socket_address().address().compare(match_address)
+            && addr->socket_address().port_value() == match_port) {
+          *(addr->mutable_socket_address()->mutable_address()) = new_address;
+          addr->mutable_socket_address()->set_port_value(new_port);
           flg = true;
           break;
         }

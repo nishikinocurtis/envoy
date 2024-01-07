@@ -210,8 +210,7 @@ private:
   // set up a timer, when exceeding do flush
   // otherwise, flush the buffer at every filter execution when targeting sync_target_.
 
-  Buffer::InstancePtr ring_buf_;
-  uint64_t max_buf_, latest_, watermark_, wm_proportion_, progress_[10];
+
 
   // need a optionGenerator
   // for AsyncClient.send() usage.
@@ -231,6 +230,9 @@ private:
   std::unique_ptr<std::list<std::string>> target_hosts_;
   std::unique_ptr<std::set<std::string>> priority_upstreams_;
   std::unique_ptr<std::list<std::string>> static_upstreams_;
+
+  Buffer::InstancePtr ring_buf_;
+  uint64_t max_buf_, latest_, watermark_, wm_proportion_, progress_[10];
 
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()
