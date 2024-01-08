@@ -17,6 +17,7 @@ import "envoy/config/metrics/v3/stats.proto";
 import "envoy/config/overload/v3/overload.proto";
 import "envoy/config/rerouting/v3/rerouting.proto";
 import "envoy/config/storage/v3/storage.proto";
+import "envoy/config/storage/v3/replicator.proto";
 import "envoy/config/trace/v3/http_tracer.proto";
 import "envoy/extensions/transport_sockets/tls/v3/secret.proto";
 import "envoy/type/v3/percent.proto";

@@ -138,6 +138,10 @@ static_resources:
                   socket_address:
                     address: 127.0.0.1
                     port_value: 10901
+  static_replicator:
+    target_cluster_names: rp_cluster_0, rp_cluster_1
+    priority_upstream_names: cluster_0
+    target_host_names: 127.0.0.1:20001, 127.0.0.1:20002
 
 storage_manager:
   rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal
