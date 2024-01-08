@@ -744,7 +744,22 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
       cds_api_cb = cds_api->genSubscriptionCallbackPtr();
       cds_resource_decoder = cds_api->getResourceDecoderPtr();
     }
+
+    std::unique_ptr<std::list<std::string>> clusters, target_hosts, upstreams;
     // TODO: waiting for ConnManager interface implementation to be instantiated.
+    if (bootstrap_.static_resources().has_static_replicators()) {
+      // construct the initial lists
+      auto& replicator_config = bootstrap_.static_resources().statis_replicators();
+      for (const auto& target_to_add : replicator_config.target_cluster_names()) {
+        clusters->push_back(target_to_add);
+      }
+      for (const auto& ups : replicator_config.priority_upstream_names()) {
+        upstreams->push_back(ups);
+      }
+      for (const auto& target_host : replicator_config.target_host_names()) {
+        target_hosts->push_back(target_host);
+      }
+    }
     rr_manager_ =
         std::make_unique<FastReconfigServerImpl>(*this, true, std::move(lds_api_cb),
                                                  std::move(lds_resource_decoder),
@@ -754,7 +769,10 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                                      *dispatcher_, *this,
                                                      bootstrap_.storage_manager().rpds_resource_locator(),
                                                      bootstrap_.storage_manager(), *local_info_,
-                                                     *config_.clusterManager()));
+                                                     *config_.clusterManager(),
+                                                     std::move(clusters), std::move(target_hosts), std::move(upstreams)));
+
+
   }
 
   if (rr_manager_) {

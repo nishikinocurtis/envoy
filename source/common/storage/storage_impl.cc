@@ -139,12 +139,20 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
                          const xds::core::v3::ResourceLocator*,
                          const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
                          Upstream::ClusterManager &cm,
-                         uint32_t lsm_ring_buf_siz)
+                         std::unique_ptr<std::list<std::string>>&& target_cluster,
+                         std::unique_ptr<std::list<std::string>>&& target_host,
+                         std::unique_ptr<std::list<std::string>>&& static_upstream,
+                         uint32_t lsm_ring_buf_siz
+                         )
                          : dispatcher_(dispatcher), server_(server),
-#ifndef BENCHMARK_MODE
+#ifdef RPDS
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
-                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
+                                    *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
 #endif
+                         target_clusters_(std::move(target_cluster)),
+                         target_hosts_(std::move(target_host)),
+                         priority_upstreams_(nullptr),
+                         static_upstreams_(std::move(static_upstream)),
                          ring_buf_(std::make_unique<Buffer::OwnedImpl>()), max_buf_(lsm_ring_buf_siz), latest_(0),
                          watermark_(0.75 * max_buf_), wm_proportion_(watermark_),
                          local_info_(local_info), cm_(cm), recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)) {

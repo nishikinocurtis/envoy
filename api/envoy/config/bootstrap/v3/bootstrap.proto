@@ -68,6 +68,8 @@ message Bootstrap {
     // These static secrets can be used by :ref:`SdsSecretConfig
     // <envoy_v3_api_msg_extensions.transport_sockets.tls.v3.SdsSecretConfig>`
     repeated envoy.extensions.transport_sockets.tls.v3.Secret secrets = 3;
+
+    envoy.config.storage.v3.Replicator static_replicators = 4;
   }
 
   // [#next-free-field: 7]

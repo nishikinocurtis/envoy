@@ -255,7 +255,10 @@ public:
       const std::string& rpds_resource_locator,
       const envoy::config::storage::v3::Storage& storage_config,
       const LocalInfo::LocalInfo& local_info,
-      Upstream::ClusterManager& cm
+      Upstream::ClusterManager& cm,
+      std::unique_ptr<std::list<std::string>>&& target_cluster,
+      std::unique_ptr<std::list<std::string>>&& target_host,
+      std::unique_ptr<std::list<std::string>>&& static_upstream
       // with necessary arguments
       // call this from server.cc to initialize.
       ) {
@@ -267,7 +270,8 @@ public:
                 rpds_resource_locator));
       }
       ptr_ = std::make_shared<StorageImpl>(dispatcher, server,
-                                           rpds_resource_locator_ptr.get(), storage_config, local_info, cm); //arguments
+                                           rpds_resource_locator_ptr.get(), storage_config, local_info, cm,
+                                           std::move(target_cluster), std::move(target_host), std::move(static_upstream)); //arguments
       return ptr_;
     } else {
       return ptr_;
