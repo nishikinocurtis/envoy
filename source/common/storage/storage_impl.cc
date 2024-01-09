@@ -2,6 +2,8 @@
 // Created by qiutong on 7/10/23.
 //
 
+#include <iostream>
+
 #include "source/common/storage/storage_impl.h"
 
 #include "envoy/http/codes.h"
@@ -15,6 +17,7 @@
 #include "source/common/protobuf/utility.h"
 
 #define BENCHMARK_MODE
+#define SINGLE_REPLICA
 
 namespace Envoy {
 namespace States {
@@ -170,13 +173,16 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
 
 int32_t StorageImpl::validate_target(const std::string_view& host) const {
   int iter = 0;
-  for (const auto& h : *target_hosts_) {
+  // printf("entering target validation: %s\n", std::string{host}.);
+  std::cout << "entering target validation: " << host << std::endl;
+  for (const auto& h : *target_clusters_) { // change with the implementation in StateReplicationFilter
     iter++;
+    ENVOY_LOG(debug, "comparing target {} and {}", h, host);
     if (!host.compare(h)) {
-      break;
+      return iter;
     }
   }
-  return iter;
+  return 0;
 }
 
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) {
@@ -248,19 +254,27 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
     latest_ = (latest_ + buf_obj.length()) % max_buf_;
     ring_buf_->move(buf_obj);
 
-
+    auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
+#ifdef SINGLE_REPLICA
+    watermark_ = (latest_ + wm_proportion_) % max_buf_;
+    auto copy_siz = (latest_ - progress_[target] + max_buf_) % max_buf_;
+    ring_buf_->copyOutToBuffer(0, copy_siz, *returned_buf.get());
+    ring_buf_->drain(copy_siz);
+#else
     // here also modify the condition
     watermark_ = (progress_[target ^ 1] + wm_proportion_) % max_buf_;
+    ring_buf_->copyOutToBuffer(progress_[target], (latest_ - progress_[target] + max_buf_) % max_buf_, *returned_buf.get());
+#endif
 
-    auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
     // auto dest_slice = returned_buf->reserveSingleSlice(latest_ - progress_[target], true);
     // auto copy_temp = new char[latest_ - progress_[target]]; // this impl needs to be refined as repeatedly allocating new slices in the heap.
     // which is also copied out later.
     // modify Buffer so that it can be used as a copy destination.
-    ring_buf_->copyOutToBuffer(progress_[target], latest_ - progress_[target], *returned_buf.get()); // copy out to returned_buf
+     // copy out to returned_buf
     // returned_buf->add(copy_temp, latest_ - progress_[target]);
-    ring_buf_->move(buf_obj);
+    // ring_buf_->move(buf_obj);
     progress_[target] = latest_;
+
 
     // delete copy_temp[];
 

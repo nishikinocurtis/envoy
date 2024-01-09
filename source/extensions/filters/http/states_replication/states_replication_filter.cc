@@ -10,7 +10,6 @@
 
 #define NEW_IMPL
 
-
 namespace Envoy {
 namespace Extensions {
 namespace HttpFilters {
@@ -113,6 +112,13 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
     return Http::FilterHeadersStatus::Continue;
   }
 
+#ifdef TIMER_BREAKDOWN
+  time_counter_ = std::chrono::high_resolution_clock::now();
+#endif
+
+  printf("entering header decoder\n");
+  ENVOY_LOG(debug, "parsing http header");
+
   states_position_ =
       std::stoull(std::string{headers.get(
           Http::LowerCaseString("x-ftmesh-length"))[0]->value().getStringView()}, nullptr);
@@ -131,15 +137,20 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   // also, don't bother validating if the request is flowing to target: simply flush all.
   // all these need to be done in decoder header:
   // then no race, just save the scene (as a marker), and flush until that marker: no inconsistency.
+  Envoy::States::StorageMetadata metadata;
+  state_obj_ = std::make_unique<Envoy::States::RawBufferStateObject>(metadata);
+
   buf_status_ = 0;
   if (state_mode_ & 1) {
     // populate buffer and trigger force flush
     storage_mgr->validate_write_lsm(state_length, -1); // return -1 here
     buf_status_ = -1;
     headers.setContentLength(states_position_);
-  } else if ((target_no_ = storage_mgr->validate_target(headers.Host()->value().getStringView())) /* target node in list */) {
+  } else if ((target_no_ = storage_mgr->validate_target(headers.get(Http::LowerCaseString("x-ftmesh-cluster"))[0]->value().getStringView())) /* target node in list */) {
+    // in production don't use cluster specifier
     headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "1");
     // simulate, populate buffer and trigger attached flush
+    printf("existing host validation\n");
     buf_status_ = storage_mgr->validate_write_lsm(state_length, target_no_);
     // how to trigger: validate the host
     // if host match: content-length state_position + flush size
@@ -147,12 +158,17 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   } else {
     // simulate, populate buffer and trigger force flush, consider merge with branch 1.
     // otherwise: force flush, separate request
+    printf("host validation failed\n");
     storage_mgr->validate_write_lsm(state_length, -1); // return -1 here
     buf_status_ = -1;
     headers.setContentLength(states_position_);
   }
 
   is_attached_ = true;
+
+#ifdef TIMER_BREAKDOWN
+  header_end_ = std::chrono::high_resolution_clock::now();
+#endif
 
   // always populate the buffer with body
   // but only flush when local and cluster match
@@ -163,7 +179,11 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
   if (!is_attached_) {
     return PassThroughDecoderFilter::decodeData(data, end_stream);
   } else {
+#ifdef TIMER_BREAKDOWN
+    data_start_ = std::chrono::high_resolution_clock::now();
+#endif
     ENVOY_LOG(debug, "start moving buffer");
+    printf("entering buffer processing\n");
     state_obj_->getObject().truncateOut(data, states_position_);
     auto resource_id = state_obj_->metadata().resource_id_;
     auto callback = decoder_callbacks_;
@@ -175,12 +195,13 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
       // state_mode_ == 1 (sync) and not exceeding: populate and drop all
       // state_mode_ == 0 (local) and not exceeding: by host, if host match, attach the ring buf to the end
       // otherwise: populate and drop all
-      auto to_be_synced = storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher(), target_no_ - 1);
-      data.move(*to_be_synced); // header already set before
+      std::unique_ptr<Buffer::Instance> to_be_synced(storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher(), target_no_ - 1));
+      if (to_be_synced != nullptr) data.move(*to_be_synced); // header already set before
     } else { // buf_status_ == -1, no need to attach
       // state_mode_ == 1 (sync) and exceeding: flushed, drop all here
       // state_mode_ == 0 (local) and exceeding: also by host: if host match, flush here
       // otherwise, drop all.
+      printf("force writing lsm\n");
       storage_mgr->write_lsm_force(std::move(state_obj_), callback->dispatcher());
 
       // headers.setContentLength(states_position_);
@@ -189,9 +210,16 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     is_attached_ = false;
     states_position_ = 0;
 
+#ifdef TIMER_BREAKDOWN
     auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - time_counter_);
-    ENVOY_LOG(info, "internal microbenchmark time {}", static_cast<double>(duration.count() / 1000.0));
+    auto full_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - time_counter_);
+    auto header_duration = std::chrono::duration_cast<std::chrono::microseconds>(header_end_ - time_counter_);
+    auto data_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - data_start_);
+    ENVOY_LOG(info, "internal microbenchmark: full {} header {}, data {}",
+              static_cast<double>(full_duration.count() / 1000.0),
+              static_cast<double>(header_duration.count() / 1000.0),
+              static_cast<double>(data_duration.count() / 1000.0));
+#endif
 
     return Http::FilterDataStatus::Continue;
   }

@@ -733,6 +733,9 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
   if (bootstrap_.static_resources().has_static_replicators()) {
     // construct the initial lists
     auto& replicator_config = bootstrap_.static_resources().static_replicators();
+    clusters = std::make_unique<std::list<std::string>>();
+    target_hosts = std::make_unique<std::list<std::string>>();
+    upstreams = std::make_unique<std::list<std::string>>();
     for (const auto& target_to_add : replicator_config.target_cluster_names()) {
       clusters->push_back(target_to_add);
     }
