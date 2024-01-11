@@ -11,6 +11,7 @@
 
 #include "envoy/common/pure.h"
 #include "envoy/config/subscription.h"
+#include "envoy/upstream/upstream.h"
 
 // may depend on upstream.h
 
@@ -68,6 +69,7 @@ public:
 
 
 };
+
 
 }
 }

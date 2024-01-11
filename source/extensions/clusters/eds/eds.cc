@@ -57,6 +57,7 @@ void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port,
           break;
         }
       }
+      if (flg == true) break;
     }
   }
   if (flg) {

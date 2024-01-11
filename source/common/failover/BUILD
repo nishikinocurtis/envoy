@@ -10,8 +10,8 @@ envoy_package()
 
 envoy_cc_library(
     name = "failover_lib",
-    hdrs = ["failover_manager_impl.h"],
     srcs = ["failover_manager_impl.cc"],
+    hdrs = ["failover_manager_impl.h"],
     deps = [
         "//envoy/failover:failover_interface",
     ],

@@ -103,3 +103,12 @@ envoy_cc_library(
         "//source/common/storage:storage_lib",
     ],
 )
+
+envoy_cc_library(
+    name = "endpoint_handler_lib",
+    srcs = ["endpoint_handler.cc"],
+    hdrs = ["endpoint_handler.h"],
+    deps = [
+        "//source/extensions/clusters/eds:eds_lib",
+    ],
+)

@@ -125,5 +125,37 @@ private:
                     ClusterFactoryContext& context) override;
 };
 
+using EdsSharedPtr = std::shared_ptr<EdsClusterImpl>;
+
+// a singleton for global registration and retrieving of Eds Handles.
+// placed in extension source to avoid cross-referencing.
+// TODO: implementation in eds.cc
+class EndpointClusterReroutingManager {
+public:
+  static EndpointClusterReroutingManager& get() {
+    static EndpointClusterReroutingManager instance;
+    return instance;
+  }
+
+  EndpointClusterReroutingManager(const EndpointClusterReroutingManager&) = delete;
+  EndpointClusterReroutingManager& operator=(const EndpointClusterReroutingManager&) = delete;
+
+  /*
+   * store the eds pointer (which hold the ability to replaceHost())
+   * for RR_server to retrieve.
+   * @param const std::string& cluster_name: unique identifier, consistent with that in pilot and xds
+   * @param Upstream::ClusterSharedPtr&&
+   */
+  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr&& cluster_handle);
+
+  EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
+
+private:
+  EndpointClusterReroutingManager() {}
+
+  std::unordered_map<std::string, EdsSharedPtr> eds_handles_;
+};
+
+
 } // namespace Upstream
 } // namespace Envoy
