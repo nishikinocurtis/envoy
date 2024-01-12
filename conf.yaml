@@ -11,7 +11,7 @@ rerouting_endpoint:
   rerouting: true
   port: 9903
 
-#dynamic_resources:
+dynamic_resources:
 #  lds_config:
 #    resource_api_version: V3
 #    api_config_source:
@@ -24,15 +24,15 @@ rerouting_endpoint:
 #        - envoy_grpc:
 #            cluster_name: xds_cluster
 #      set_node_on_first_message_only: true
-#  cds_config:
-#    resource_api_version: V3
-#    api_config_source:
-#      api_type: GRPC
-#      transport_api_version: V3
-#      grpc_services:
-#        - envoy_grpc:
-#            cluster_name: xds_cluster
-#      set_node_on_first_message_only: true
+  cds_config:
+    resource_api_version: V3
+    api_config_source:
+      api_type: GRPC
+      transport_api_version: V3
+      grpc_services:
+        - envoy_grpc:
+            cluster_name: xds_cluster
+      set_node_on_first_message_only: true
 
 static_resources:
   listeners:
@@ -149,7 +149,7 @@ static_resources:
             - endpoint:
                 address:
                   socket_address:
-                    address: 127.0.0.1
+                    address: 10.214.96.107
                     port_value: 10901
   static_replicators:
     target_cluster_names: rp_cluster_0

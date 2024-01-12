@@ -409,8 +409,11 @@ EdsClusterFactory::createClusterImpl(Server::Configuration::ServerFactoryContext
     throw EnvoyException("cannot create an EDS cluster without an EDS config");
   }
 
-  return std::make_pair(std::make_unique<EdsClusterImpl>(server_context, cluster, context,
-                                                         context.runtime(), context.addedViaApi()),
+  auto edsImpl = std::make_shared<EdsClusterImpl>(server_context, cluster, context,
+                                                  context.runtime(), context.addedViaApi());
+  EndpointClusterReroutingManager::get().registerEdsHandle(cluster.name(), std::move(edsImpl));
+
+  return std::make_pair(std::move(edsImpl),
                         nullptr);
 }
 
@@ -438,6 +441,7 @@ EdsSharedPtr EndpointClusterReroutingManager::fetchEdsHandleByCluster(const std:
   if (eds_handles_.find(cluster_name) != eds_handles_.end()) {
     return eds_handles_.at(cluster_name);
   }
+  return nullptr;
 }
 
 } // namespace Upstream

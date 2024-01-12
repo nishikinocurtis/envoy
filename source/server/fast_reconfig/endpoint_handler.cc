@@ -13,8 +13,8 @@ namespace Envoy {
 namespace Server {
 
 Http::Code EndpointReconfigHandler::pushNewEndpointInfo(Envoy::Server::AdminStream &admin_stream,
-                                                        Http::ResponseHeaderMap &response_headers,
-                                                        Buffer::Instance &response) {
+                                                        Http::ResponseHeaderMap &,
+                                                        Buffer::Instance &) {
   ENVOY_LOG(debug, "entering pushNewEndpointInfo processor");
 
   auto siz_ = admin_stream.getRequestBody()->length();
@@ -36,9 +36,12 @@ Http::Code EndpointReconfigHandler::pushNewEndpointInfo(Envoy::Server::AdminStre
   }();
 
   auto edsHandle = Upstream::EndpointClusterReroutingManager::get().fetchEdsHandleByCluster(metadata[0]);
-  return edsHandle->replaceHost(metadata[1], std::stoul(metadata[2]), metadata[3], std::stoul(metadata[4]))
-          ? Http::Code::OK : Http::Code::InternalServerError;
-
+  if (edsHandle != nullptr) {
+    return edsHandle->replaceHost(metadata[1], std::stoul(metadata[2]), metadata[3], std::stoul(metadata[4]))
+              ? Http::Code::OK : Http::Code::InternalServerError;
+  } else {
+    return Http::Code::BadRequest;
+  }
 }
 
 } // namespace Server

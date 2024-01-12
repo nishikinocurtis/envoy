@@ -15,6 +15,7 @@ envoy_cc_library(
     ],
     deps = [
         ":cluster_reconfig_lib",
+        ":endpoint_handler_lib",
         ":fast_reconfig_filter_lib",
         ":listener_reconfig_lib",
         ":recover_handler_lib",
