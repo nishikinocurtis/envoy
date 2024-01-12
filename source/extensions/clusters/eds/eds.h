@@ -146,7 +146,7 @@ public:
    * @param const std::string& cluster_name: unique identifier, consistent with that in pilot and xds
    * @param Upstream::ClusterSharedPtr&&
    */
-  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr&& cluster_handle);
+  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr cluster_handle);
 
   [[nodiscard]] EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
 

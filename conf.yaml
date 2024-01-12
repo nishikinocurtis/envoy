@@ -149,7 +149,7 @@ static_resources:
             - endpoint:
                 address:
                   socket_address:
-                    address: 10.214.96.107
+                    address: 10.214.96.110
                     port_value: 10901
   static_replicators:
     target_cluster_names: rp_cluster_0

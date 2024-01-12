@@ -411,9 +411,9 @@ EdsClusterFactory::createClusterImpl(Server::Configuration::ServerFactoryContext
 
   auto edsImpl = std::make_shared<EdsClusterImpl>(server_context, cluster, context,
                                                   context.runtime(), context.addedViaApi());
-  EndpointClusterReroutingManager::get().registerEdsHandle(cluster.name(), std::move(edsImpl));
+  EndpointClusterReroutingManager::get().registerEdsHandle(cluster.name(), edsImpl);
 
-  return std::make_pair(std::move(edsImpl),
+  return std::make_pair(edsImpl,
                         nullptr);
 }
 
@@ -433,8 +433,8 @@ bool EdsClusterImpl::validateAllLedsUpdated() const {
 REGISTER_FACTORY(EdsClusterFactory, ClusterFactory);
 
 void EndpointClusterReroutingManager::registerEdsHandle(const std::string &cluster_name,
-                                                        Envoy::Upstream::EdsSharedPtr &&cluster_handle) {
-  eds_handles_[cluster_name] = std::move(cluster_handle);
+                                                        Envoy::Upstream::EdsSharedPtr cluster_handle) {
+  eds_handles_[cluster_name] = cluster_handle;
 }
 
 EdsSharedPtr EndpointClusterReroutingManager::fetchEdsHandleByCluster(const std::string &cluster_name) const {
