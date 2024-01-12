@@ -38,7 +38,11 @@ public:
   // Upstream::Cluster
   InitializePhase initializePhase() const override { return initialize_phase_; }
 
+  bool replaceHost(std::string match_address, uint32_t match_port,
+                       std::string new_address, uint32_t new_port);
+
 private:
+  void onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment);
   // Config::SubscriptionCallbacks
   void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
                       const std::string& version_info) override;
@@ -120,6 +124,38 @@ private:
                     const envoy::config::cluster::v3::Cluster& cluster,
                     ClusterFactoryContext& context) override;
 };
+
+using EdsSharedPtr = std::shared_ptr<EdsClusterImpl>;
+
+// a singleton for global registration and retrieving of Eds Handles.
+// placed in extension source to avoid cross-referencing.
+// TODO: implementation in eds.cc
+class EndpointClusterReroutingManager {
+public:
+  static EndpointClusterReroutingManager& get() {
+    static EndpointClusterReroutingManager instance;
+    return instance;
+  }
+
+  EndpointClusterReroutingManager(const EndpointClusterReroutingManager&) = delete;
+  EndpointClusterReroutingManager& operator=(const EndpointClusterReroutingManager&) = delete;
+
+  /*
+   * store the eds pointer (which hold the ability to replaceHost())
+   * for RR_server to retrieve.
+   * @param const std::string& cluster_name: unique identifier, consistent with that in pilot and xds
+   * @param Upstream::ClusterSharedPtr&&
+   */
+  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr&& cluster_handle);
+
+  [[nodiscard]] EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
+
+private:
+  EndpointClusterReroutingManager() {}
+
+  std::unordered_map<std::string, EdsSharedPtr> eds_handles_;
+};
+
 
 } // namespace Upstream
 } // namespace Envoy

@@ -11,6 +11,8 @@
 #include "source/common/common/logger.h"
 #include "source/extensions/filters/http/common/pass_through_filter.h"
 
+#define TIMER_BREAKDOWN
+
 namespace Envoy {
 namespace Extensions {
 namespace HttpFilters {
@@ -31,10 +33,16 @@ public:
 
   // call Storage Replicate and continue
 private:
+  // Http::RequestHeaderMap& headers_;
   std::unique_ptr<Envoy::States::StateObject> state_obj_;
   bool is_attached_ = false;
   uint64_t states_position_;
+  uint32_t state_mode_;
+  int32_t buf_status_, target_no_;
   std::chrono::time_point<std::chrono::high_resolution_clock> time_counter_;
+#ifdef TIMER_BREAKDOWN
+  std::chrono::time_point<std::chrono::high_resolution_clock> header_end_, data_start_;
+#endif
 };
 
 } // namespace States

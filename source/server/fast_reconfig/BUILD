@@ -15,6 +15,7 @@ envoy_cc_library(
     ],
     deps = [
         ":cluster_reconfig_lib",
+        ":endpoint_handler_lib",
         ":fast_reconfig_filter_lib",
         ":listener_reconfig_lib",
         ":recover_handler_lib",
@@ -101,5 +102,14 @@ envoy_cc_library(
         "//envoy/server:instance_interface",
         "//envoy/storage:storage_interface",
         "//source/common/storage:storage_lib",
+    ],
+)
+
+envoy_cc_library(
+    name = "endpoint_handler_lib",
+    srcs = ["endpoint_handler.cc"],
+    hdrs = ["endpoint_handler.h"],
+    deps = [
+        "//source/extensions/clusters/eds:eds_lib",
     ],
 )

@@ -104,5 +104,6 @@ private:
   RcdsApiPtr rcds_api_;
 };
 
+
 } // namespace Failover
 } // namespace Envoy

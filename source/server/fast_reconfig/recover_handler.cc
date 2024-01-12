@@ -10,7 +10,6 @@
 
 #include "source/common/storage/storage_impl.h"
 
-#define RECOVER_BENCHMARK
 
 namespace Envoy {
 namespace Server {
@@ -30,11 +29,13 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
   ENVOY_LOG(debug, "Recovery signal received for service x with resource-id x, method x, "
                    "deliver to port p uri u at time t.");
 
+#ifdef RECOVER_BENCHMARK
   auto time_counter = std::chrono::high_resolution_clock::now();
 
   auto time_marker = std::string{admin_stream.getRequestHeaders().get(
       Http::LowerCaseString("x-ftmesh-bench-marker")
       )[0]->value().getStringView()};
+#endif
 
   std::vector<std::string> resource_ids = absl::StrSplit(admin_stream.getRequestBody()->toString(), '\n');
   for (const std::string& resource_id : resource_ids) {

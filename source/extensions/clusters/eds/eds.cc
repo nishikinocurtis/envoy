@@ -40,6 +40,32 @@ EdsClusterImpl::EdsClusterImpl(Server::Configuration::ServerFactoryContext& serv
 
 void EdsClusterImpl::startPreInit() { subscription_->start({edsServiceName()}); }
 
+bool EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port, std::string new_address,
+                                     uint32_t new_port) {
+  auto new_cla = *cluster_load_assignment_.get();
+  bool flg = false;
+  for (auto& locality : *new_cla.mutable_endpoints()) {
+    if (locality.lb_endpoints_size() > 0) {
+      for (auto& ep : *locality.mutable_lb_endpoints()) {
+        auto addr = ep.mutable_endpoint()->mutable_address(); // TODO: require syntax modification
+        if (addr->has_socket_address()
+            && !addr->socket_address().address().compare(match_address)
+            && addr->socket_address().port_value() == match_port) {
+          *(addr->mutable_socket_address()->mutable_address()) = new_address;
+          addr->mutable_socket_address()->set_port_value(new_port);
+          flg = true;
+          break;
+        }
+      }
+      if (flg == true) break;
+    }
+  }
+  if (flg) {
+    onConfigUpdateSingleResource(new_cla);
+  }
+  return flg;
+}
+
 void EdsClusterImpl::BatchUpdateHelper::batchUpdate(PrioritySet::HostUpdateCb& host_update_cb) {
   absl::flat_hash_set<std::string> all_new_hosts;
   PriorityStateManager priority_state_manager(parent_, parent_.local_info_, &host_update_cb);
@@ -140,14 +166,8 @@ void EdsClusterImpl::BatchUpdateHelper::updateLocalityEndpoints(
   all_new_hosts.emplace(address_as_string);
 }
 
-void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
-                                    const std::string&) {
-  if (!validateUpdateSize(resources.size())) {
-    return;
-  }
-  envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment =
-      dynamic_cast<const envoy::config::endpoint::v3::ClusterLoadAssignment&>(
-          resources[0].get().resource());
+void EdsClusterImpl::onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment) {
+
   if (cluster_load_assignment.cluster_name() != edsServiceName()) {
     throw EnvoyException(fmt::format("Unexpected EDS cluster (expecting {}): {}", edsServiceName(),
                                      cluster_load_assignment.cluster_name()));
@@ -242,6 +262,15 @@ void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef
 
   BatchUpdateHelper helper(*this, *used_load_assignment);
   priority_set_.batchHostUpdate(helper);
+}
+
+void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
+                                    const std::string&) {
+  if (!validateUpdateSize(resources.size())) {
+    return;
+  }
+  onConfigUpdateSingleResource(dynamic_cast<const envoy::config::endpoint::v3::ClusterLoadAssignment&>(
+                                         resources[0].get().resource()));
 }
 
 void EdsClusterImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef>& added_resources,
@@ -380,8 +409,11 @@ EdsClusterFactory::createClusterImpl(Server::Configuration::ServerFactoryContext
     throw EnvoyException("cannot create an EDS cluster without an EDS config");
   }
 
-  return std::make_pair(std::make_unique<EdsClusterImpl>(server_context, cluster, context,
-                                                         context.runtime(), context.addedViaApi()),
+  auto edsImpl = std::make_shared<EdsClusterImpl>(server_context, cluster, context,
+                                                  context.runtime(), context.addedViaApi());
+  EndpointClusterReroutingManager::get().registerEdsHandle(cluster.name(), std::move(edsImpl));
+
+  return std::make_pair(std::move(edsImpl),
                         nullptr);
 }
 
@@ -399,6 +431,18 @@ bool EdsClusterImpl::validateAllLedsUpdated() const {
  * Static registration for the Eds cluster factory. @see RegisterFactory.
  */
 REGISTER_FACTORY(EdsClusterFactory, ClusterFactory);
+
+void EndpointClusterReroutingManager::registerEdsHandle(const std::string &cluster_name,
+                                                        Envoy::Upstream::EdsSharedPtr &&cluster_handle) {
+  eds_handles_[cluster_name] = std::move(cluster_handle);
+}
+
+EdsSharedPtr EndpointClusterReroutingManager::fetchEdsHandleByCluster(const std::string &cluster_name) const {
+  if (eds_handles_.find(cluster_name) != eds_handles_.end()) {
+    return eds_handles_.at(cluster_name);
+  }
+  return nullptr;
+}
 
 } // namespace Upstream
 } // namespace Envoy

@@ -11,7 +11,7 @@ rerouting_endpoint:
   rerouting: true
   port: 9903
 
-#dynamic_resources:
+dynamic_resources:
 #  lds_config:
 #    resource_api_version: V3
 #    api_config_source:
@@ -24,15 +24,15 @@ rerouting_endpoint:
 #        - envoy_grpc:
 #            cluster_name: xds_cluster
 #      set_node_on_first_message_only: true
-#  cds_config:
-#    resource_api_version: V3
-#    api_config_source:
-#      api_type: GRPC
-#      transport_api_version: V3
-#      grpc_services:
-#        - envoy_grpc:
-#            cluster_name: xds_cluster
-#      set_node_on_first_message_only: true
+  cds_config:
+    resource_api_version: V3
+    api_config_source:
+      api_type: GRPC
+      transport_api_version: V3
+      grpc_services:
+        - envoy_grpc:
+            cluster_name: xds_cluster
+      set_node_on_first_message_only: true
 
 static_resources:
   listeners:
@@ -49,9 +49,9 @@ static_resources:
           stat_prefix: ingress_http
           codec_type: AUTO
           http_filters:
-          - name: envoy.extensions.filters.http.StatesReplication
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.http.states_replication.v3.StatesReplication
+          # - name: envoy.extensions.filters.http.StatesReplication
+          #   typed_config:
+          #     "@type": type.googleapis.com/envoy.extensions.filters.http.states_replication.v3.StatesReplication
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -62,11 +62,11 @@ static_resources:
                 domains: ["*"]
                 routes:
                 - match:
-                    prefix: "/recover"
+                    prefix: "/svc-b"
                   route:
                     cluster: cluster_1
                 - match:
-                    prefix: "/"
+                    prefix: "/svc-a"
                   route:
                     cluster: cluster_0
 
@@ -82,8 +82,8 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 127.0.0.1
-                port_value: 10730
+                address: 10.214.96.108
+                port_value: 10729
   - name: cluster_1
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -96,7 +96,20 @@ static_resources:
             address:
               socket_address:
                 address: 127.0.0.1
-                port_value: 10801
+                port_value: 10730
+  - name: cluster_2
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    dns_lookup_family: V4_ONLY
+    load_assignment:
+      cluster_name: upstream_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 10.214.96.107
+                port_value: 10729              
   - name: rp_cluster_1
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -108,8 +121,8 @@ static_resources:
             - endpoint:
                 address:
                   socket_address:
-                    address: 127.0.0.1
-                    port_value: 20001
+                    address: 10.214.96.107
+                    port_value: 10729
   - name: rp_cluster_0
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -121,8 +134,8 @@ static_resources:
             - endpoint:
                 address:
                   socket_address:
-                    address: 127.0.0.1
-                    port_value: 20002
+                    address: 10.214.96.108
+                    port_value: 10729
   - name: xds_cluster
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -136,8 +149,12 @@ static_resources:
             - endpoint:
                 address:
                   socket_address:
-                    address: 127.0.0.1
+                    address: 10.214.96.107
                     port_value: 10901
+  static_replicators:
+    target_cluster_names: rp_cluster_0
+    priority_upstream_names: cluster_0
+    target_host_names: 10.214.96.108:10729
 
 storage_manager:
   rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal

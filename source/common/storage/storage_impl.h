@@ -90,9 +90,23 @@ public:
               const xds::core::v3::ResourceLocator* rpds_resource_locator,
               const envoy::config::storage::v3::Storage& storage_config,
               const LocalInfo::LocalInfo& local_info,
-              Upstream::ClusterManager& cm);
+              Upstream::ClusterManager& cm,
+              std::unique_ptr<std::list<std::string>>&& target_cluster,
+              std::unique_ptr<std::list<std::string>>&& target_host,
+              std::unique_ptr<std::list<std::string>>&& static_upstream,
+              uint32_t lsm_ring_buf_siz = 1024u);
+
+  int32_t validate_target(const std::string_view& host) const override;
 
   void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
+
+  std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
+                                                     Event::Dispatcher& tls_dispatcher,
+                                                     int32_t target) override;
+
+  int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
+
+  int32_t validate_write_lsm(int32_t siz, int32_t target) const override;
 
   // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;
@@ -124,8 +138,12 @@ public:
   void addTargetCluster(const std::string& cluster) override {
     target_clusters_->push_back(cluster);
   }
-  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) override {
-    target_clusters_ = std::move(cluster_list);
+  void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
+                           std::unique_ptr<std::set<std::string>>&& priority_ups,
+                           std::unique_ptr<std::list<std::string>>&& sync_target_host) override {
+    target_clusters_ = std::move(sync_target);
+    priority_upstreams_ = std::move(priority_ups);
+    target_hosts_ = std::move(sync_target_host);
   }
   void removeTargetCluster(const std::string& cluster) override {
     for (auto iter = target_clusters_->begin(); iter != target_clusters_->end(); ++iter) {
@@ -134,6 +152,13 @@ public:
         break;
       }
     }
+  }
+
+  void addPriorityUpstream(const std::string& cluster) {
+    priority_upstreams_->insert(cluster);
+  }
+  void shiftPriorityUpstreams(std::unique_ptr<std::set<std::string>>&& cluster_list) {
+    priority_upstreams_ = std::move(cluster_list);
   }
 
   void beginTargetUpdate() override {}
@@ -156,6 +181,15 @@ public:
   void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
 
 private:
+  class RecoverInfoCallback : public Http::AsyncClient::Callbacks {
+  public:
+    RecoverInfoCallback(StorageImpl& parent) : parent_(parent) {};
+    void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&& response) override;
+    void onFailure(const Http::AsyncClient::Request&, Http::AsyncClient::FailureReason) override {}
+    void onBeforeFinalizeUpstreamSpan(Tracing::Span&, const Http::ResponseHeaderMap*) override {}
+  private:
+    StorageImpl& parent_;
+  };
   using MicroClock = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
   // make it async
@@ -174,6 +208,13 @@ private:
   std::unordered_map<std::string, MicroClock> clock_keeper_;
   WeakReferenceStateMap by_pod_; // indexed by svc_name+pod_nam
 
+  std::unique_ptr<std::vector<StateObject>> lsm_pool_; // construct a ring_buf like lsm.
+  // change it to buffer, with maximum size, when exceeding do flush
+  // set up a timer, when exceeding do flush
+  // otherwise, flush the buffer at every filter execution when targeting sync_target_.
+
+
+
   // need a optionGenerator
   // for AsyncClient.send() usage.
   void populateRequestOption();
@@ -189,12 +230,21 @@ private:
   RpdsApiPtr rpds_api_;
 
   std::unique_ptr<std::list<std::string>> target_clusters_;
+  std::unique_ptr<std::list<std::string>> target_hosts_;
+  std::unique_ptr<std::set<std::string>> priority_upstreams_;
+  std::unique_ptr<std::list<std::string>> static_upstreams_;
+
+  Buffer::InstancePtr ring_buf_;
+  uint64_t max_buf_, latest_, watermark_, wm_proportion_, progress_[10];
 
   // need a ClusterManager
   // call for cluster_name : cluster_names do clusterManager.find_cluster(cluster_name).asyncClient().send()
   // maintain a quorom counter per version
   const LocalInfo::LocalInfo& local_info_;
   Upstream::ClusterManager& cm_;
+
+  // callback handler for recover
+  std::unique_ptr<RecoverInfoCallback> recover_info_callback_;
 };
 
 class StorageSingleton {
@@ -208,7 +258,10 @@ public:
       const std::string& rpds_resource_locator,
       const envoy::config::storage::v3::Storage& storage_config,
       const LocalInfo::LocalInfo& local_info,
-      Upstream::ClusterManager& cm
+      Upstream::ClusterManager& cm,
+      std::unique_ptr<std::list<std::string>>&& target_cluster,
+      std::unique_ptr<std::list<std::string>>&& target_host,
+      std::unique_ptr<std::list<std::string>>&& static_upstream
       // with necessary arguments
       // call this from server.cc to initialize.
       ) {
@@ -220,7 +273,8 @@ public:
                 rpds_resource_locator));
       }
       ptr_ = std::make_shared<StorageImpl>(dispatcher, server,
-                                           rpds_resource_locator_ptr.get(), storage_config, local_info, cm); //arguments
+                                           rpds_resource_locator_ptr.get(), storage_config, local_info, cm,
+                                           std::move(target_cluster), std::move(target_host), std::move(static_upstream)); //arguments
       return ptr_;
     } else {
       return ptr_;

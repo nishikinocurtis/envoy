@@ -2,6 +2,8 @@
 // Created by qiutong on 7/10/23.
 //
 
+#include <iostream>
+
 #include "source/common/storage/storage_impl.h"
 
 #include "envoy/http/codes.h"
@@ -15,6 +17,7 @@
 #include "source/common/protobuf/utility.h"
 
 #define BENCHMARK_MODE
+#define SINGLE_REPLICA
 
 namespace Envoy {
 namespace States {
@@ -72,21 +75,28 @@ RpdsApiImpl::RpdsApiImpl(const xds::core::v3::ResourceLocator* rpds_resource_loc
 void RpdsApiImpl::onConfigUpdate(const std::vector<Config::DecodedResourceRef> &resources,
                                  const std::string &version_info) {
   version_info_ = version_info;
-  //TODO: TBI
   // call the str_manager_->shiftTargetClusters
+  auto replicator_config =
+      dynamic_cast<const Replicator&>(resources[0].get());
   auto new_target_list = std::make_unique<std::list<std::string>>();
+  auto new_priority_ups = std::make_unique<std::set<std::string>>();
+  auto new_host_list = std::make_unique<std::list<std::string>>();
 
   str_manager_->beginTargetUpdate();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
-  for (const auto& target_to_add : resources) {
-    std::string target;
-
-    // cast to target
-    new_target_list->push_back(target);
+  // TODO: Add upstream update logic, fix sync target logic.
+  for (const auto& target_to_add : replicator_config.target_cluster_names()) {
+    new_target_list->push_back(target_to_add);
+  }
+  for (const auto& ups : replicator_config.priority_upstream_names()) {
+    new_priority_ups->insert(ups);
+  }
+  for (const auto& target_host : replicator_config.target_host_names()) {
+    new_host_list->push_back(target_host);
   }
 #pragma clang diagnostic pop
-  str_manager_->shiftTargetClusters(std::move(new_target_list));
+  str_manager_->shiftTargetClusters(std::move(new_target_list), std::move(new_priority_ups), std::move(new_host_list));
 
   str_manager_->endTargetUpdate();
 }
@@ -131,20 +141,48 @@ void RpdsApiImpl::onConfigUpdateFailed(Envoy::Config::ConfigUpdateFailureReason 
 StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server,
                          const xds::core::v3::ResourceLocator*,
                          const envoy::config::storage::v3::Storage&, const LocalInfo::LocalInfo &local_info,
-                         Upstream::ClusterManager &cm)
+                         Upstream::ClusterManager &cm,
+                         std::unique_ptr<std::list<std::string>>&& target_cluster,
+                         std::unique_ptr<std::list<std::string>>&& target_host,
+                         std::unique_ptr<std::list<std::string>>&& static_upstream,
+                         uint32_t lsm_ring_buf_siz
+                         )
                          : dispatcher_(dispatcher), server_(server),
-#ifndef BENCHMARK_MODE
+#ifdef RPDS
                          rpds_api_(std::make_shared<RpdsApiImpl>(rpds_resource_locator, storage_config.rpds_config(), shared_from_this(), cm, server_.initManager(),
-                                   *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
+                                    *server_.stats().rootScope(), server_.messageValidationContext().dynamicValidationVisitor())),
 #endif
-                         local_info_(local_info), cm_(cm) {
+                         target_clusters_(std::move(target_cluster)),
+                         target_hosts_(std::move(target_host)),
+                         priority_upstreams_(nullptr),
+                         static_upstreams_(std::move(static_upstream)),
+                         ring_buf_(std::make_unique<Buffer::OwnedImpl>()), max_buf_(lsm_ring_buf_siz), latest_(0),
+                         watermark_(0.75 * max_buf_), wm_proportion_(watermark_),
+                         local_info_(local_info), cm_(cm), recover_info_callback_(std::make_unique<RecoverInfoCallback>(*this)) {
   // [SOLVED] need rpds_api_ initialization parameters: get init_manager, scope, and validation visitor from here.
+  ring_buf_->reserveSingleSlice(lsm_ring_buf_siz, false);
+  memset(progress_, 0, sizeof progress_);
+
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
   target_clusters_ = std::make_unique<std::list<std::string>>();
   target_clusters_->emplace_back("rp_cluster_0");
   target_clusters_->emplace_back("rp_cluster_1");
 #endif
+}
+
+int32_t StorageImpl::validate_target(const std::string_view& host) const {
+  int iter = 0;
+  // printf("entering target validation: %s\n", std::string{host}.);
+  std::cout << "entering target validation: " << host << std::endl;
+  for (const auto& h : *target_clusters_) { // change with the implementation in StateReplicationFilter
+    iter++;
+    ENVOY_LOG(debug, "comparing target {} and {}", h, host);
+    if (!host.compare(h)) {
+      return iter;
+    }
+  }
+  return 0;
 }
 
 void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) {
@@ -188,7 +226,122 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
 }
 
+int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) const {
+  if (target == -1) {
+    return -1;
+  } else {
+    return (latest_ + siz - progress_[target] + max_buf_) % max_buf_;
+  }
+}
+
+std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<StateObject> &&obj,
+                                                                Event::Dispatcher &, int32_t target) {
+  // two things need to be maintained:
+  // each target's progress
+  // total length
+  auto& buf_obj = obj->getObject();
+  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
+    (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) { // TODO: modify the condition
+    // flush all
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    watermark_ = (watermark_ + wm_proportion_) % max_buf_;
+    progress_[0] = progress_[1] = latest_;
+
+    replicate(target ? "all-buffer/0" : "all-buffer/1");
+    return nullptr; // this branch should return 0: no attach
+  } else {
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    ring_buf_->move(buf_obj);
+
+    auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
+#ifdef SINGLE_REPLICA
+    watermark_ = (latest_ + wm_proportion_) % max_buf_;
+    auto copy_siz = (latest_ - progress_[target] + max_buf_) % max_buf_;
+    ring_buf_->copyOutToBuffer(0, copy_siz, *returned_buf.get());
+    ring_buf_->drain(copy_siz);
+#else
+    // here also modify the condition
+    watermark_ = (progress_[target ^ 1] + wm_proportion_) % max_buf_;
+    ring_buf_->copyOutToBuffer(progress_[target], (latest_ - progress_[target] + max_buf_) % max_buf_, *returned_buf.get());
+#endif
+
+    // auto dest_slice = returned_buf->reserveSingleSlice(latest_ - progress_[target], true);
+    // auto copy_temp = new char[latest_ - progress_[target]]; // this impl needs to be refined as repeatedly allocating new slices in the heap.
+    // which is also copied out later.
+    // modify Buffer so that it can be used as a copy destination.
+     // copy out to returned_buf
+    // returned_buf->add(copy_temp, latest_ - progress_[target]);
+    // ring_buf_->move(buf_obj);
+    progress_[target] = latest_;
+
+
+    // delete copy_temp[];
+
+    return std::move(returned_buf); // this branch should return returned_buf.length().
+  }
+}
+
+int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &) {
+  auto& buf_obj = obj->getObject();
+  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
+      (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) {
+    // flush
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    watermark_ = (watermark_ + wm_proportion_) % max_buf_;
+    progress_[0] = progress_[1] = latest_;
+
+    replicate("all-buffer");
+    return 1;
+  } else {
+    // insert only
+    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    return 0;
+  }
+}
+
 void StorageImpl::replicate(const std::string &resource_id) {
+  // TODO: modify logic, so that the replication happens in the HTTP filter
+  // TODO: add a latest log pool to be replicated.
+  // TODO: new msg should not use headers as metadata field, as there will be multiple logs
+  // TODO: leave the parsing work to StorageImpl.
+
+  if (resource_id.find("all-buffer") != std::string::npos) {
+    Http::AsyncClient::RequestOptions options;
+
+    auto excluded = -1;
+
+    if (resource_id.length() != 8) {
+      excluded = resource_id.back() == '0' ? 0 : 1;
+    }
+
+    int iter = 0;
+    uint64_t drain_siz = 0;
+
+    for (const auto& target : *target_clusters_) {
+      if (iter == excluded) { iter++; continue; }
+
+      auto headers = Http::RequestHeaderMapImpl::create();
+      headers->setPath("/replicate_single");
+      auto flush_buf = std::make_unique<Buffer::OwnedImpl>();
+      ring_buf_->copyOutToBuffer(progress_[iter], latest_ - progress_[iter], *flush_buf);
+      makeHttpCall(target, std::move(headers),
+                   *flush_buf, options, *this);
+
+      drain_siz = std::max(drain_siz, uint64_t(latest_ - progress_[iter])); // need to deal with ring_buf_
+      progress_[iter] = latest_;
+
+      iter++;
+    }
+
+    watermark_ = (latest_ + wm_proportion_) % max_buf_;
+    ring_buf_->drain(drain_siz);
+
+    return;
+  }
+
   // makeHttpCall
   auto it = states_.find(resource_id);
 
@@ -225,6 +378,7 @@ void StorageImpl::recover(const std::string& resource_id) {
     if (metadata.flags & HANDSHAKE) {
       // handshake logic TBI
       ENVOY_LOG(debug, "non-final port recovery not implemented");
+      return;
     } else {
       // makeHttpCall, transfer the resource.
       auto headers = Http::RequestHeaderMapImpl::create();
@@ -238,7 +392,7 @@ void StorageImpl::recover(const std::string& resource_id) {
 #ifdef BENCHMARK_MODE
       deliver_target = "cluster_1"; // for benchmarking use only.
 #endif
-      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *this);
+      makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *recover_info_callback_.get());
       // TODO: wait for response: port to new port mapping, return the response body directly to caller
       return;
     }
@@ -327,6 +481,43 @@ Http::AsyncClient::Request* StorageImpl::makeHttpCall(
 }
 
 std::shared_ptr<Storage> StorageSingleton::ptr_ = nullptr;
+
+void StorageImpl::RecoverInfoCallback::onSuccess(const Http::AsyncClient::Request &,
+                                                 Http::ResponseMessagePtr &&response) {
+  // assume response is text/html <ip/domain>:port.
+  auto new_svc_address = response->bodyAsString();
+  auto sep_pos = new_svc_address.find_last_of(":");
+
+
+  if (sep_pos != std::string::npos) {
+    auto resource_id = response->headers().get(Http::LowerCaseString("x-ftmesh-resource-id"));
+    auto location = new_svc_address.substr(0, sep_pos);
+    auto port = std::stoi(new_svc_address.substr(sep_pos+1));
+    auto origin_obj = parent_.states_.find(std::string{resource_id[0]->value().getStringView()});
+    if (origin_obj != parent_.states_.end()) {
+      auto& obj_val = origin_obj->second->metadata();
+      std::stringstream msg_ss("");
+      msg_ss << obj_val.svc_id_ << "\n"
+             << obj_val.svc_ip_ << "\n"
+             << obj_val.svc_port_ << "\n"
+             << location << "\n"
+             << port << "\n";
+      auto msg = msg_ss.str();
+      Http::AsyncClient::RequestOptions options;
+
+      // send msg to others;
+      std::for_each(parent_.target_clusters_->begin(), parent_.target_clusters_->end(),
+                    [&, this](const std::string& cluster) -> void {
+        auto headers = Http::RequestHeaderMapImpl::create();
+        headers->setHost("127.0.0.1:9903");
+        headers->setPath("/rr_endpoint");
+        auto data = Buffer::OwnedImpl(msg);
+        this->parent_.makeHttpCall(cluster, std::move(headers), data, options, *this);
+      });
+    }
+  }
+
+}
 
 }
 }

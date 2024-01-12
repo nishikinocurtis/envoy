@@ -729,6 +729,24 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                     lds_resources_locator.get());
   }
 
+  std::unique_ptr<std::list<std::string>> clusters, target_hosts, upstreams;
+  if (bootstrap_.static_resources().has_static_replicators()) {
+    // construct the initial lists
+    auto& replicator_config = bootstrap_.static_resources().static_replicators();
+    clusters = std::make_unique<std::list<std::string>>();
+    target_hosts = std::make_unique<std::list<std::string>>();
+    upstreams = std::make_unique<std::list<std::string>>();
+    for (const auto& target_to_add : replicator_config.target_cluster_names()) {
+      clusters->push_back(target_to_add);
+    }
+    for (const auto& ups : replicator_config.priority_upstream_names()) {
+      upstreams->push_back(ups);
+    }
+    for (const auto& target_host : replicator_config.target_host_names()) {
+      target_hosts->push_back(target_host);
+    }
+  }
+
   // after xDS subscription initialized start our reconfig server to pierce the update into subscription
   if (bootstrap_.rerouting_endpoint().rerouting()) {
     std::shared_ptr<Config::SubscriptionCallbacks> lds_api_cb, cds_api_cb;
@@ -745,6 +763,7 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
       cds_resource_decoder = cds_api->getResourceDecoderPtr();
     }
     // TODO: waiting for ConnManager interface implementation to be instantiated.
+
     rr_manager_ =
         std::make_unique<FastReconfigServerImpl>(*this, true, std::move(lds_api_cb),
                                                  std::move(lds_resource_decoder),
@@ -754,7 +773,10 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
                                                      *dispatcher_, *this,
                                                      bootstrap_.storage_manager().rpds_resource_locator(),
                                                      bootstrap_.storage_manager(), *local_info_,
-                                                     *config_.clusterManager()));
+                                                     *config_.clusterManager(),
+                                                     std::move(clusters), std::move(target_hosts), std::move(upstreams)));
+
+
   }
 
   if (rr_manager_) {
@@ -772,7 +794,8 @@ void InstanceImpl::initialize(Network::Address::InstanceConstSharedPtr local_add
         *dispatcher_, *this,
         bootstrap_.storage_manager().rpds_resource_locator(),
         bootstrap_.storage_manager(), *local_info_,
-        *config_.clusterManager());
+        *config_.clusterManager(),
+        std::move(clusters), std::move(target_hosts), std::move(upstreams));
   }
 
   // We have to defer RTDS initialization until after the cluster manager is

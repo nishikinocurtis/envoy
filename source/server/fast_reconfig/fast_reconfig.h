@@ -24,6 +24,7 @@
 #include "source/server/fast_reconfig/listener_handler.h"
 #include "source/server/fast_reconfig/cluster_handler.h"
 #include "source/server/fast_reconfig/recover_handler.h"
+#include "source/server/fast_reconfig/endpoint_handler.h"
 #include "source/server/null_overload_manager.h"
 #include "source/server/server_endpoint_listener.h"
 #include "source/server/server_endpoint_filter.h"
@@ -311,6 +312,7 @@ private:
   ListenerHandler listener_reconfig_handler_instance_;
   ClusterHandler cluster_reconfig_handler_instance_;
   ReplicateRecoverHandler replicate_recover_handler_instance_;
+  EndpointReconfigHandler endpoint_reconfig_handler_instance_;
   Http::Http1::CodecStats::AtomicPtr http1_codec_stats_;
   Http::Http2::CodecStats::AtomicPtr http2_codec_stats_;
   Network::SocketSharedPtr socket_;

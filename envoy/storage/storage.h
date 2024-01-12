@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "envoy/config/core/v3/config_source.pb.h"
 #include "envoy/event/dispatcher.h"
@@ -54,6 +55,12 @@ protected:
   StorageMetadata metadata_;
 };
 
+class RecoverRoutingInfo {
+public:
+  uint32_t _port;
+  std::string _ip;
+};
+
 class RpdsApi { // RePlication Discovery Service
 public:
   virtual ~RpdsApi() = default;
@@ -87,6 +94,9 @@ using RpdsApiPtr = std::shared_ptr<RpdsApi>;
 class Storage : public std::enable_shared_from_this<Storage> {
 public:
   virtual ~Storage() = default;
+
+  virtual int32_t validate_target(const std::string_view& host) const PURE;
+
   /**
    * create or update a StateObject.
    * Fired by StateReplicationFilter on outgoing request,
@@ -98,6 +108,22 @@ public:
    */
   virtual void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher //, some bytes array, or object
   ) PURE;
+
+  /*
+   * Write raw bytes (plus metadata, consider fixing the header size) to the lsm ring buf data structure
+   * Return status code: if exceed the siz limit: trigger replicate() itself, and return 1
+   * Otherwise return nullopt
+   */
+  virtual std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
+                                                             Event::Dispatcher& tls_dispatcher,
+                                                             int32_t target) PURE;
+
+  virtual int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) PURE;
+
+  /*
+   * Simulate the result of write_lsm.
+   */
+  virtual int32_t validate_write_lsm(int32_t siz, int32_t target) const PURE;
 
   /**
    * replicate the StateObject identified by the resource_id to other sidecars.
@@ -162,9 +188,12 @@ public:
   // frequently, and the replication process itself consumes O(n) time).
   virtual void addTargetCluster(const std::string& cluster) PURE;
 
-  virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& cluster_list) PURE;
+  virtual void shiftTargetClusters(std::unique_ptr<std::list<std::string>>&& sync_target,
+                                   std::unique_ptr<std::set<std::string>>&& priority_ups,
+                                   std::unique_ptr<std::list<std::string>>&& sync_target_host) PURE;
 
   virtual void removeTargetCluster(const std::string& cluster) PURE;
+
 
 protected:
   virtual void timedCleanUp() PURE;

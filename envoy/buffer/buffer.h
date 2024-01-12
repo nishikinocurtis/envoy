@@ -213,6 +213,14 @@ public:
   virtual void copyOut(size_t start, uint64_t size, void* data) const PURE;
 
   /**
+   * Copy out a section of the buffer to the right hand side parameter, a buffer instance.
+   * @param start
+   * @param size
+   * @param rhs
+   */
+  virtual void copyOutToBuffer(size_t start, uint64_t size, Buffer::Instance& rhs) const PURE;
+
+  /**
    * Copy out a section of the buffer to  dynamic array of slices.
    * @param size supplies the size of the data that will be copied.
    * @param slices supplies the output slices to fill.

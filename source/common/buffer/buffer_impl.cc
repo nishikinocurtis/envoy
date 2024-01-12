@@ -120,6 +120,27 @@ void OwnedImpl::copyOut(size_t start, uint64_t size, void* data) const {
   ASSERT(size == 0);
 }
 
+void OwnedImpl::copyOutToBuffer(size_t start, uint64_t size, Instance& rhs) const {
+  uint64_t bytes_to_skip = start;
+  OwnedImpl& other = static_cast<OwnedImpl&>(rhs);
+  for (const auto& slice : getRawSlices()) {
+    if (size == 0) {
+      break;
+    }
+    uint64_t data_size = slice.len_;
+    if (data_size <= bytes_to_skip) {
+      bytes_to_skip -= data_size;
+      continue;
+    }
+    uint64_t copy_size = std::min(size, data_size - bytes_to_skip);
+    uint64_t start_position = data_size - copy_size;
+    other.addImpl(static_cast<uint8_t*>(slice.mem_) + start_position, copy_size);
+    size -= copy_size;
+    bytes_to_skip = 0;
+  }
+  ASSERT(size == 0);
+}
+
 uint64_t OwnedImpl::copyOutToSlices(uint64_t size, Buffer::RawSlice* dest_slices,
                                     uint64_t num_slice) const {
   uint64_t total_length_to_read = std::min(size, this->length());
