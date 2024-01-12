@@ -38,7 +38,7 @@ public:
   // Upstream::Cluster
   InitializePhase initializePhase() const override { return initialize_phase_; }
 
-  void replaceHost(std::string match_address, uint32_t match_port,
+  bool replaceHost(std::string match_address, uint32_t match_port,
                        std::string new_address, uint32_t new_port);
 
 private:
@@ -148,7 +148,7 @@ public:
    */
   void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr&& cluster_handle);
 
-  EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
+  [[nodiscard]] EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
 
 private:
   EndpointClusterReroutingManager() {}

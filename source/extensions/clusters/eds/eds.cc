@@ -40,7 +40,7 @@ EdsClusterImpl::EdsClusterImpl(Server::Configuration::ServerFactoryContext& serv
 
 void EdsClusterImpl::startPreInit() { subscription_->start({edsServiceName()}); }
 
-void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port, std::string new_address,
+bool EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port, std::string new_address,
                                      uint32_t new_port) {
   auto new_cla = *cluster_load_assignment_.get();
   bool flg = false;
@@ -63,6 +63,7 @@ void EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port,
   if (flg) {
     onConfigUpdateSingleResource(new_cla);
   }
+  return flg;
 }
 
 void EdsClusterImpl::BatchUpdateHelper::batchUpdate(PrioritySet::HostUpdateCb& host_update_cb) {
@@ -427,6 +428,17 @@ bool EdsClusterImpl::validateAllLedsUpdated() const {
  * Static registration for the Eds cluster factory. @see RegisterFactory.
  */
 REGISTER_FACTORY(EdsClusterFactory, ClusterFactory);
+
+void EndpointClusterReroutingManager::registerEdsHandle(const std::string &cluster_name,
+                                                        Envoy::Upstream::EdsSharedPtr &&cluster_handle) {
+  eds_handles_[cluster_name] = std::move(cluster_handle);
+}
+
+EdsSharedPtr EndpointClusterReroutingManager::fetchEdsHandleByCluster(const std::string &cluster_name) const {
+  if (eds_handles_.find(cluster_name) != eds_handles_.end()) {
+    return eds_handles_.at(cluster_name);
+  }
+}
 
 } // namespace Upstream
 } // namespace Envoy
