@@ -42,7 +42,7 @@ public:
                        std::string new_address, uint32_t new_port);
 
 private:
-  void onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment);
+  void onConfigUpdateSingleResource(const envoy::config::endpoint::v3::ClusterLoadAssignment& cluster_load_assignment);
   // Config::SubscriptionCallbacks
   void onConfigUpdate(const std::vector<Config::DecodedResourceRef>& resources,
                       const std::string& version_info) override;
@@ -146,7 +146,7 @@ public:
    * @param const std::string& cluster_name: unique identifier, consistent with that in pilot and xds
    * @param Upstream::ClusterSharedPtr&&
    */
-  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr&& cluster_handle);
+  void registerEdsHandle(const std::string& cluster_name, EdsSharedPtr cluster_handle);
 
   [[nodiscard]] EdsSharedPtr fetchEdsHandleByCluster(const std::string& cluster_name) const;
 

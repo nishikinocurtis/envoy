@@ -16,21 +16,24 @@ Http::Code EndpointReconfigHandler::pushNewEndpointInfo(Envoy::Server::AdminStre
                                                         Http::ResponseHeaderMap &,
                                                         Buffer::Instance &) {
   ENVOY_LOG(debug, "entering pushNewEndpointInfo processor");
+  printf("matched and entering new endpoint\n");
 
   auto siz_ = admin_stream.getRequestBody()->length();
-  auto raw_body = std::unique_ptr<char>(new char[siz_]);
+  auto raw_body = std::unique_ptr<char[]>(new char[siz_]);
   admin_stream.getRequestBody()->copyOut(0, siz_, raw_body.get());
 
   // auto pb_stream = std::make_unique<Protobuf::io::CodedInputStream>(raw_body.get(), siz_);
-  auto request_str = std::string{*raw_body};
+  std::string request_str(raw_body.get());
   auto metadata = [&request_str]() -> std::vector<std::string> {
     std::vector<std::string> result;
     std::istringstream iss(request_str);
     std::string line;
 
-    while (std::getline(iss, line)) {
+    while (std::getline(iss, line, '\n')) {
       result.push_back(line);
+      printf("%s\n", line.c_str());
     }
+
 
     return result;
   }();
