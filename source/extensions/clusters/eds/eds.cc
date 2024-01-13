@@ -42,7 +42,8 @@ void EdsClusterImpl::startPreInit() { subscription_->start({edsServiceName()}); 
 
 bool EdsClusterImpl::replaceHost(std::string match_address, uint32_t match_port, std::string new_address,
                                      uint32_t new_port) {
-  auto new_cla = *cluster_load_assignment_.get();
+  envoy::config::endpoint::v3::ClusterLoadAssignment new_cla;
+  new_cla.CopyFrom(*cluster_load_assignment_);
   bool flg = false;
   for (auto& locality : *new_cla.mutable_endpoints()) {
     if (locality.lb_endpoints_size() > 0) {
@@ -166,7 +167,7 @@ void EdsClusterImpl::BatchUpdateHelper::updateLocalityEndpoints(
   all_new_hosts.emplace(address_as_string);
 }
 
-void EdsClusterImpl::onConfigUpdateSingleResource(envoy::config::endpoint::v3::ClusterLoadAssignment cluster_load_assignment) {
+void EdsClusterImpl::onConfigUpdateSingleResource(const envoy::config::endpoint::v3::ClusterLoadAssignment& cluster_load_assignment) {
 
   if (cluster_load_assignment.cluster_name() != edsServiceName()) {
     throw EnvoyException(fmt::format("Unexpected EDS cluster (expecting {}): {}", edsServiceName(),
@@ -226,8 +227,10 @@ void EdsClusterImpl::onConfigUpdateSingleResource(envoy::config::endpoint::v3::C
   // (optimize for no-copy).
   envoy::config::endpoint::v3::ClusterLoadAssignment* used_load_assignment;
   if (cla_leds_configs.empty()) {
-    cluster_load_assignment_ = nullptr;
-    used_load_assignment = &cluster_load_assignment;
+    // in both case copy the cla.
+    cluster_load_assignment_ = std::make_unique<envoy::config::endpoint::v3::ClusterLoadAssignment>(
+        std::move(cluster_load_assignment));
+    used_load_assignment = cluster_load_assignment_.get();
   } else {
     cluster_load_assignment_ = std::make_unique<envoy::config::endpoint::v3::ClusterLoadAssignment>(
         std::move(cluster_load_assignment));
