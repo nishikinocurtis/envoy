@@ -165,9 +165,9 @@ StorageImpl::StorageImpl(Event::Dispatcher &dispatcher, Server::Instance& server
 
 #ifdef BENCHMARK_MODE
   ENVOY_LOG(debug, "Storage Impl launched without rpds_api_");
-  target_clusters_ = std::make_unique<std::list<std::string>>();
-  target_clusters_->emplace_back("rp_cluster_0");
-  target_clusters_->emplace_back("rp_cluster_1");
+  // target_clusters_ = std::make_unique<std::list<std::string>>();
+  // target_clusters_->emplace_back("cluster_0");
+  // target_clusters_->emplace_back("rp_cluster_1");
 #endif
 }
 
@@ -234,25 +234,25 @@ int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) const {
   }
 }
 
-std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<StateObject> &&obj,
+std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(Buffer::Instance& obj,
                                                                 Event::Dispatcher &, int32_t target) {
   // two things need to be maintained:
   // each target's progress
   // total length
-  auto& buf_obj = obj->getObject();
-  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
-    (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) { // TODO: modify the condition
+  // auto& buf_obj = obj->getObject();
+  if ((latest_ <= watermark_ && latest_ + obj.length() >= watermark_) ||
+    (latest_ > watermark_ && (latest_ + obj.length()) % max_buf_ >= watermark_)) { // TODO: modify the condition
     // flush all
-    ring_buf_->move(buf_obj);
-    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    ring_buf_->move(obj);
+    latest_ = (latest_ + obj.length()) % max_buf_;
     watermark_ = (watermark_ + wm_proportion_) % max_buf_;
     progress_[0] = progress_[1] = latest_;
 
     replicate(target ? "all-buffer/0" : "all-buffer/1");
     return nullptr; // this branch should return 0: no attach
   } else {
-    latest_ = (latest_ + buf_obj.length()) % max_buf_;
-    ring_buf_->move(buf_obj);
+    latest_ = (latest_ + obj.length()) % max_buf_;
+    ring_buf_->move(obj);
 
     auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
 #ifdef SINGLE_REPLICA
@@ -282,13 +282,61 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(std::shared_ptr<
   }
 }
 
-int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::Dispatcher &) {
-  auto& buf_obj = obj->getObject();
-  if ((latest_ <= watermark_ && latest_ + buf_obj.length() >= watermark_) ||
-      (latest_ > watermark_ && (latest_ + buf_obj.length()) % max_buf_ >= watermark_)) {
+void StorageImpl::write_parse(Buffer::Instance& obj, Event::Dispatcher& tls_dispatcher) {
+  auto metadata_len_mark = new char[sizeof(uint32_t)];
+  obj.copyOut(0, sizeof(uint32_t), metadata_len_mark);
+
+  StorageMetadata mt;
+  uint32_t mt_len;
+  memcpy(&mt_len, metadata_len_mark, sizeof(uint32_t));
+
+  std::cout << "metadata len: " << mt_len << std::endl;
+
+  auto metadata = new char[mt_len];
+  obj.copyOut(sizeof(uint32_t), mt_len, metadata);
+  std::string metadata_str(metadata);
+
+  obj.drain(sizeof(uint32_t) + mt_len);
+
+  std::istringstream iss(metadata_str);
+  std::string line;
+  std::vector<std::string> result;
+
+  while (std::getline(iss, line, '\n')) {
+    result.push_back(line);
+  }
+
+  parseMetadata(mt, result);
+  std::cout << mt.resource_id_ << std::endl;
+  std::cout << mt.recover_port_ << std::endl;
+  std::cout << mt.recover_uri_ << std::endl;
+  auto state_obj = std::make_shared<RawBufferStateObject>(mt);
+  state_obj->writeObject(obj);
+
+  write(std::move(state_obj), tls_dispatcher);
+
+  delete[] metadata_len_mark;
+}
+
+void StorageImpl::parseMetadata(Envoy::States::StorageMetadata &mt, const std::vector<std::string> &vec) {
+  mt.recover_port_ = std::stoul(vec[0]);
+  mt.flags = std::stoul(vec[1]);
+  mt.ttl_ = std::stoul(vec[2]);
+  mt.recover_uri_ = vec[3];
+  mt.resource_id_ = vec[4];
+  mt.svc_id_ = vec[5];
+  mt.pod_id_ = vec[6];
+  mt.method_name_ = vec[7];
+  mt.svc_ip_ = vec[8];
+  mt.svc_port_ = vec[9];
+}
+
+int32_t StorageImpl::write_lsm_force(Buffer::Instance& obj, Event::Dispatcher &) {
+  if ((latest_ <= watermark_ && latest_ + obj.length() >= watermark_) ||
+      (latest_ > watermark_ && (latest_ + obj.length()) % max_buf_ >= watermark_)) {
     // flush
-    ring_buf_->move(buf_obj);
-    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    ring_buf_->move(obj);
+    latest_ = (latest_ + obj.length()) % max_buf_;
     watermark_ = (watermark_ + wm_proportion_) % max_buf_;
     progress_[0] = progress_[1] = latest_;
 
@@ -296,8 +344,8 @@ int32_t StorageImpl::write_lsm_force(std::shared_ptr<StateObject> &&obj, Event::
     return 1;
   } else {
     // insert only
-    ring_buf_->move(buf_obj);
-    latest_ = (latest_ + buf_obj.length()) % max_buf_;
+    ring_buf_->move(obj);
+    latest_ = (latest_ + obj.length()) % max_buf_;
     return 0;
   }
 }
@@ -392,12 +440,14 @@ void StorageImpl::recover(const std::string& resource_id) {
 #ifdef BENCHMARK_MODE
       deliver_target = "cluster_1"; // for benchmarking use only.
 #endif
+      std::cout << "requesting " << deliver_target << " at " << metadata.recover_port_ << metadata.recover_uri_ << std::endl;
       makeHttpCall(deliver_target, std::move(headers), it->second->getObject(), options, *recover_info_callback_.get());
       // TODO: wait for response: port to new port mapping, return the response body directly to caller
       return;
     }
   } else {
     ENVOY_LOG(debug, "resource {} not found for recovery", resource_id);
+    std::cout << "resource: " << resource_id << "not found" << std::endl;
   }
 }
 
@@ -482,17 +532,18 @@ Http::AsyncClient::Request* StorageImpl::makeHttpCall(
 
 std::shared_ptr<Storage> StorageSingleton::ptr_ = nullptr;
 
+// TODO: construct with local address
 void StorageImpl::RecoverInfoCallback::onSuccess(const Http::AsyncClient::Request &,
                                                  Http::ResponseMessagePtr &&response) {
   // assume response is text/html <ip/domain>:port.
-  auto new_svc_address = response->bodyAsString();
-  auto sep_pos = new_svc_address.find_last_of(":");
+  // auto new_svc_address = response->bodyAsString();
+  // auto sep_pos = new_svc_address.find_last_of(":");
 
 
-  if (sep_pos != std::string::npos) {
+  // if (sep_pos != std::string::npos) {
     auto resource_id = response->headers().get(Http::LowerCaseString("x-ftmesh-resource-id"));
-    auto location = new_svc_address.substr(0, sep_pos);
-    auto port = std::stoi(new_svc_address.substr(sep_pos+1));
+    // auto location = new_svc_address.substr(0, sep_pos);
+    // auto port = std::stoi(new_svc_address.substr(sep_pos+1));
     auto origin_obj = parent_.states_.find(std::string{resource_id[0]->value().getStringView()});
     if (origin_obj != parent_.states_.end()) {
       auto& obj_val = origin_obj->second->metadata();
@@ -500,22 +551,27 @@ void StorageImpl::RecoverInfoCallback::onSuccess(const Http::AsyncClient::Reques
       msg_ss << obj_val.svc_id_ << "\n"
              << obj_val.svc_ip_ << "\n"
              << obj_val.svc_port_ << "\n"
-             << location << "\n"
-             << port << "\n";
+             << "10.214.96.108" << "\n" // replace with local address here
+             << 10729 << "\n";
       auto msg = msg_ss.str();
+
+      std::cout << msg;
+
       Http::AsyncClient::RequestOptions options;
 
       // send msg to others;
-      std::for_each(parent_.target_clusters_->begin(), parent_.target_clusters_->end(),
+      std::for_each(parent_.static_upstreams_->begin(), parent_.static_upstreams_->end(),
                     [&, this](const std::string& cluster) -> void {
         auto headers = Http::RequestHeaderMapImpl::create();
         headers->setHost("127.0.0.1:9903");
         headers->setPath("/rr_endpoint");
         auto data = Buffer::OwnedImpl(msg);
-        this->parent_.makeHttpCall(cluster, std::move(headers), data, options, *this);
+
+        std::cout << "requesting: " << cluster << std::endl;
+        this->parent_.makeHttpCall(cluster, std::move(headers), data, options, parent_);
       });
     }
-  }
+  // }
 
 }
 

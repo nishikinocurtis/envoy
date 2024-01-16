@@ -7,6 +7,7 @@
 
 #include "source/common/storage/storage_impl.h"
 #include "source/extensions/filters/http/states_replication/states_replication_filter.h"
+#include "source/common/buffer/buffer_impl.h"
 
 #define NEW_IMPL
 
@@ -137,8 +138,8 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
   // also, don't bother validating if the request is flowing to target: simply flush all.
   // all these need to be done in decoder header:
   // then no race, just save the scene (as a marker), and flush until that marker: no inconsistency.
-  Envoy::States::StorageMetadata metadata;
-  state_obj_ = std::make_unique<Envoy::States::RawBufferStateObject>(metadata);
+  // Envoy::States::StorageMetadata metadata;
+  state_obj_ = std::make_unique<Buffer::OwnedImpl>();
 
   buf_status_ = 0;
   if (state_mode_ & 1) {
@@ -184,8 +185,8 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
 #endif
     ENVOY_LOG(debug, "start moving buffer");
     printf("entering buffer processing\n");
-    state_obj_->getObject().truncateOut(data, states_position_);
-    auto resource_id = state_obj_->metadata().resource_id_;
+    state_obj_->truncateOut(data, states_position_);
+    // auto resource_id = state_obj_->metadata().resource_id_;
     auto callback = decoder_callbacks_;
     auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
     // storage_mgr->write(std::move(state_obj_), callback->dispatcher());
@@ -195,14 +196,19 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
       // state_mode_ == 1 (sync) and not exceeding: populate and drop all
       // state_mode_ == 0 (local) and not exceeding: by host, if host match, attach the ring buf to the end
       // otherwise: populate and drop all
-      std::unique_ptr<Buffer::Instance> to_be_synced(storage_mgr->write_lsm_attach(std::move(state_obj_), callback->dispatcher(), target_no_ - 1));
-      if (to_be_synced != nullptr) data.move(*to_be_synced); // header already set before
+      std::unique_ptr<Buffer::Instance> to_be_synced(storage_mgr->write_lsm_attach(*state_obj_, callback->dispatcher(), target_no_ - 1));
+      if (to_be_synced != nullptr) {data.move(*to_be_synced);} // header already set before
     } else { // buf_status_ == -1, no need to attach
-      // state_mode_ == 1 (sync) and exceeding: flushed, drop all here
+      // state_mode_ == 1 (sync) and exceeding: parse (another function) and drop all here
       // state_mode_ == 0 (local) and exceeding: also by host: if host match, flush here
       // otherwise, drop all.
       printf("force writing lsm\n");
-      storage_mgr->write_lsm_force(std::move(state_obj_), callback->dispatcher());
+      if (state_mode_ == 0) {
+
+        storage_mgr->write_lsm_force(*state_obj_, callback->dispatcher());
+      } else {
+        storage_mgr->write_parse(*state_obj_, callback->dispatcher());
+      }
 
       // headers.setContentLength(states_position_);
     }

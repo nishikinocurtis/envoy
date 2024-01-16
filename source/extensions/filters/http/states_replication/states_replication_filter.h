@@ -34,7 +34,7 @@ public:
   // call Storage Replicate and continue
 private:
   // Http::RequestHeaderMap& headers_;
-  std::unique_ptr<Envoy::States::StateObject> state_obj_;
+  std::unique_ptr<Buffer::Instance> state_obj_;
   bool is_attached_ = false;
   uint64_t states_position_;
   uint32_t state_mode_;

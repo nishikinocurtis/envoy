@@ -112,7 +112,7 @@ static_resources:
             address:
               socket_address:
                 address: 10.214.96.108
-                port_value: 10729
+                port_value: 10728
   - name: cluster_1
     type: STATIC
     lb_policy: ROUND_ROBIN
@@ -184,9 +184,9 @@ static_resources:
                     address: 127.0.0.1
                     port_value: 10901
   static_replicators:
-    target_cluster_names: rp_cluster_0
+    target_cluster_names: cluster_0
     priority_upstream_names: cluster_0
-    target_host_names: 10.214.96.108:10729
+    target_host_names: 10.214.96.108:10728
 
 storage_manager:
   rpds_resource_locator: xdstp://127.0.0.1:10801/envoy.config.storage.v3.Replicator/testlocal

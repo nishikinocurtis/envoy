@@ -100,11 +100,13 @@ public:
 
   void write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
 
-  std::unique_ptr<Buffer::Instance> write_lsm_attach(std::shared_ptr<StateObject>&& obj,
+  std::unique_ptr<Buffer::Instance> write_lsm_attach(Buffer::Instance& obj,
                                                      Event::Dispatcher& tls_dispatcher,
                                                      int32_t target) override;
 
-  int32_t write_lsm_force(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& tls_dispatcher) override;
+  void write_parse(Buffer::Instance& obj, Event::Dispatcher& tls_dispatcher) override;
+
+  int32_t write_lsm_force(Buffer::Instance& obj, Event::Dispatcher& tls_dispatcher) override;
 
   int32_t validate_write_lsm(int32_t siz, int32_t target) const override;
 
@@ -199,6 +201,8 @@ private:
   Http::AsyncClient::Request* makeHttpCall(const std::string& target, std::unique_ptr<Http::RequestHeaderMap>&& headers,
                                            Buffer::Instance& data, const Http::AsyncClient::RequestOptions& options,
                                            Http::AsyncClient::Callbacks& callbacks);
+
+  static void parseMetadata(StorageMetadata& mt, std::vector<std::string> const& vec);
 
   using WeakReferenceStateMap = std::unordered_map<std::string, std::weak_ptr<StateObject>>;
 
