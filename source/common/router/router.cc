@@ -42,6 +42,11 @@
 #include "source/common/stream_info/uint32_accessor_impl.h"
 #include "source/common/tracing/http_tracer_impl.h"
 
+#ifdef TIME_EVAL
+#include <iostream>
+#include <chrono>
+#endif
+
 namespace Envoy {
 namespace Router {
 namespace {
@@ -380,6 +385,10 @@ void Filter::chargeUpstreamCode(Http::Code code,
 }
 
 Http::FilterHeadersStatus Filter::decodeHeaders(Http::RequestHeaderMap& headers, bool end_stream) {
+#ifdef TIME_EVAL
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("entering router decodeHeader: %lld\n", enter_now);
+#endif
   downstream_headers_ = &headers;
 
   // Extract debug configuration from filter state. This is used further along to determine whether
@@ -701,6 +710,10 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::RequestHeaderMap& headers,
       !transport_socket_options_ || !transport_socket_options_->http11ProxyInfo().has_value();
   UpstreamRequestPtr upstream_request = std::make_unique<UpstreamRequest>(
       *this, std::move(generic_conn_pool), can_send_early_data, can_use_http3);
+#ifdef TIME_EVAL
+  auto leave_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("upstream req created: %lld\n", leave_now);
+#endif
   LinkedList::moveIntoList(std::move(upstream_request), upstream_requests_);
   upstream_requests_.front()->acceptHeadersFromRouter(end_stream);
   if (streaming_shadows_) {

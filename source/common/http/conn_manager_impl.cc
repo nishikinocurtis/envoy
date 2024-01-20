@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "envoy/buffer/buffer.h"
 #include "envoy/common/time.h"
@@ -51,6 +52,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+
 
 namespace Envoy {
 namespace Http {
@@ -470,6 +472,11 @@ Network::FilterStatus ConnectionManagerImpl::onData(Buffer::Instance& data, bool
 }
 
 Network::FilterStatus ConnectionManagerImpl::onNewConnection() {
+#ifdef TIME_EVAL
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("starting HTTP_CONN_MGR newConnection: %lld\n", enter_now);
+#endif
+
   if (!read_callbacks_->connection().streamInfo().protocol()) {
     // For Non-QUIC traffic, continue passing data to filters.
     return Network::FilterStatus::Continue;

@@ -53,7 +53,7 @@ common --experimental_allow_tags_propagation
 # (Workaround for https://github.com/bazelbuild/rules_foreign_cc/issues/421)
 build:linux --copt=-fPIC
 build:linux --copt=-Wno-deprecated-declarations
-build:linux --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
+build:linux --cxxopt=-std=c++17 -DTIME_EVAL --host_cxxopt=-std=c++17
 build:linux --conlyopt=-fexceptions
 build:linux --fission=dbg,opt
 build:linux --features=per_object_debug_info

@@ -290,7 +290,7 @@ void StorageImpl::write_parse(Buffer::Instance& obj, Event::Dispatcher& tls_disp
   uint32_t mt_len;
   memcpy(&mt_len, metadata_len_mark, sizeof(uint32_t));
 
-  std::cout << "metadata len: " << mt_len << std::endl;
+  std::cout << "metadata len: " << mt_len << " buf len: " << obj.length() << std::endl;
 
   auto metadata = new char[mt_len];
   obj.copyOut(sizeof(uint32_t), mt_len, metadata);

@@ -115,6 +115,8 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
 
 #ifdef TIMER_BREAKDOWN
   time_counter_ = std::chrono::high_resolution_clock::now();
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("entering state header decoder: %lld\n", enter_now);
 #endif
 
   printf("entering header decoder\n");
@@ -169,6 +171,8 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
 
 #ifdef TIMER_BREAKDOWN
   header_end_ = std::chrono::high_resolution_clock::now();
+  auto leave_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("leaving state header decoder: %lld\n", leave_now);
 #endif
 
   // always populate the buffer with body
@@ -182,6 +186,8 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
   } else {
 #ifdef TIMER_BREAKDOWN
     data_start_ = std::chrono::high_resolution_clock::now();
+    auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    printf("entering state data decoder: %lld\n", enter_now);
 #endif
     ENVOY_LOG(debug, "start moving buffer");
     printf("entering buffer processing\n");
@@ -217,14 +223,16 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     states_position_ = 0;
 
 #ifdef TIMER_BREAKDOWN
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto full_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - time_counter_);
-    auto header_duration = std::chrono::duration_cast<std::chrono::microseconds>(header_end_ - time_counter_);
-    auto data_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - data_start_);
-    ENVOY_LOG(info, "internal microbenchmark: full {} header {}, data {}",
-              static_cast<double>(full_duration.count() / 1000.0),
-              static_cast<double>(header_duration.count() / 1000.0),
-              static_cast<double>(data_duration.count() / 1000.0));
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto full_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - time_counter_);
+//    auto header_duration = std::chrono::duration_cast<std::chrono::microseconds>(header_end_ - time_counter_);
+//    auto data_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - data_start_);
+//    ENVOY_LOG(info, "internal microbenchmark: full {} header {}, data {}",
+//              static_cast<double>(full_duration.count() / 1000.0),
+//              static_cast<double>(header_duration.count() / 1000.0),
+//              static_cast<double>(data_duration.count() / 1000.0));
+    auto leave_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    printf("leaving state data decoder: %lld\n", leave_now);
 #endif
 
     return Http::FilterDataStatus::Continue;

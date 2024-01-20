@@ -14,6 +14,11 @@
 #include "source/common/network/address_impl.h"
 #include "source/common/network/io_socket_handle_impl.h"
 
+#ifdef TIME_EVAL
+#include <iostream>
+#include <chrono>
+#endif
+
 namespace Envoy {
 namespace Network {
 
@@ -42,6 +47,10 @@ void TcpListenerImpl::onSocketEvent(short flags) {
 
   // TODO(fcoras): Add limit on number of accepted calls per wakeup
   while (1) {
+#ifdef TIME_EVAL
+    auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    printf("socket event cb triggered: %lld\n", enter_now);
+#endif
     if (!socket_->ioHandle().isOpen()) {
       PANIC(fmt::format("listener accept failure: {}", errorDetails(errno)));
     }
@@ -86,6 +95,11 @@ void TcpListenerImpl::onSocketEvent(short flags) {
             : Address::addressFromSockAddrOrThrow(remote_addr, remote_addr_len,
                                                   local_address->ip()->version() ==
                                                       Address::IpVersion::v6);
+
+#ifdef TIME_EVAL
+    std::cout << local_address->asString() << " " << remote_address->asString() << std::endl;
+#endif
+
 
     cb_.onAccept(
         std::make_unique<AcceptedSocketImpl>(std::move(io_handle), local_address, remote_address));
