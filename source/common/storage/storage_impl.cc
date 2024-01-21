@@ -226,7 +226,7 @@ void StorageImpl::write(std::shared_ptr<StateObject>&& obj, Event::Dispatcher& t
   ttl_timers_[metadata.resource_id_] = std::move(timer_ptr);
 }
 
-int32_t StorageImpl::validate_write_lsm(int32_t siz, int32_t target) const {
+int32_t StorageImpl::validate_write_lsm(uint64_t siz, int32_t target) const {
   if (target == -1) {
     return -1;
   } else {
@@ -240,6 +240,9 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(Buffer::Instance
   // each target's progress
   // total length
   // auto& buf_obj = obj->getObject();
+#ifdef TIME_EVAL
+  std::cout << "latest_ before mod: " << latest_ << " obj_len: " << obj.length() << " wm_: " << watermark_ << std::endl;
+#endif
   if ((latest_ <= watermark_ && latest_ + obj.length() >= watermark_) ||
     (latest_ > watermark_ && (latest_ + obj.length()) % max_buf_ >= watermark_)) { // TODO: modify the condition
     // flush all
@@ -257,7 +260,10 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(Buffer::Instance
     auto returned_buf = std::make_unique<Buffer::OwnedImpl>();
 #ifdef SINGLE_REPLICA
     watermark_ = (latest_ + wm_proportion_) % max_buf_;
-    auto copy_siz = (latest_ - progress_[target] + max_buf_) % max_buf_;
+    auto copy_siz = (latest_ + max_buf_ - progress_[target]) % max_buf_;
+#ifdef TIME_EVAL
+    std::cout << "normal attach: " << copy_siz << std::endl;
+#endif
     ring_buf_->copyOutToBuffer(0, copy_siz, *returned_buf.get());
     ring_buf_->drain(copy_siz);
 #else
@@ -283,6 +289,7 @@ std::unique_ptr<Buffer::Instance> StorageImpl::write_lsm_attach(Buffer::Instance
 }
 
 void StorageImpl::write_parse(Buffer::Instance& obj, Event::Dispatcher& tls_dispatcher) {
+  std::cout << "siz len: " << sizeof(uint32_t) << " buf len: " << obj.length();
   auto metadata_len_mark = new char[sizeof(uint32_t)];
   obj.copyOut(0, sizeof(uint32_t), metadata_len_mark);
 
@@ -290,7 +297,7 @@ void StorageImpl::write_parse(Buffer::Instance& obj, Event::Dispatcher& tls_disp
   uint32_t mt_len;
   memcpy(&mt_len, metadata_len_mark, sizeof(uint32_t));
 
-  std::cout << "metadata len: " << mt_len << " buf len: " << obj.length() << std::endl;
+  std::cout << " metadata len: " << mt_len  << std::endl;
 
   auto metadata = new char[mt_len];
   obj.copyOut(sizeof(uint32_t), mt_len, metadata);
@@ -538,7 +545,10 @@ void StorageImpl::RecoverInfoCallback::onSuccess(const Http::AsyncClient::Reques
   // assume response is text/html <ip/domain>:port.
   // auto new_svc_address = response->bodyAsString();
   // auto sep_pos = new_svc_address.find_last_of(":");
-
+#ifdef TIME_EVAL
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("state recovery replied: %lld\n", enter_now);
+#endif
 
   // if (sep_pos != std::string::npos) {
     auto resource_id = response->headers().get(Http::LowerCaseString("x-ftmesh-resource-id"));

@@ -15,6 +15,10 @@ namespace Server {
 Http::Code EndpointReconfigHandler::pushNewEndpointInfo(Envoy::Server::AdminStream &admin_stream,
                                                         Http::ResponseHeaderMap &,
                                                         Buffer::Instance &) {
+#ifdef TIME_EVAL
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("entering endpoint handler: %lld\n", enter_now);
+#endif
   ENVOY_LOG(debug, "entering pushNewEndpointInfo processor");
   printf("matched and entering new endpoint\n");
 
@@ -40,7 +44,12 @@ Http::Code EndpointReconfigHandler::pushNewEndpointInfo(Envoy::Server::AdminStre
 
   auto edsHandle = Upstream::EndpointClusterReroutingManager::get().fetchEdsHandleByCluster(metadata[0]);
   if (edsHandle != nullptr) {
-    return edsHandle->replaceHost(metadata[1], std::stoul(metadata[2]), metadata[3], std::stoul(metadata[4]))
+#ifdef TIME_EVAL
+    auto leave_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    printf("leaving endpoint handler: %lld\n", leave_now);
+#endif
+    bool res = edsHandle->replaceHost(metadata[1], std::stoul(metadata[2]), metadata[3], std::stoul(metadata[4]));
+    return res
               ? Http::Code::OK : Http::Code::InternalServerError;
   } else {
     return Http::Code::BadRequest;

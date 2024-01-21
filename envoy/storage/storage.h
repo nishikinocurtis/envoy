@@ -125,7 +125,7 @@ public:
   /*
    * Simulate the result of write_lsm.
    */
-  virtual int32_t validate_write_lsm(int32_t siz, int32_t target) const PURE;
+  virtual int32_t validate_write_lsm(uint64_t siz, int32_t target) const PURE;
 
   /**
    * replicate the StateObject identified by the resource_id to other sidecars.

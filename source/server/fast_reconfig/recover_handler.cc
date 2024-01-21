@@ -26,6 +26,10 @@ Http::Code ReplicateRecoverHandler::onFailureRecovery(Envoy::Server::AdminStream
                                                       Buffer::Instance &response) {
   // TODO: TBI
   // call storage_ptr_->recover()
+#ifdef TIME_EVAL
+  auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  printf("entering failure recovery: %lld\n", enter_now);
+#endif
   ENVOY_LOG(debug, "Recovery signal received for service x with resource-id x, method x, "
                    "deliver to port p uri u at time t.");
 

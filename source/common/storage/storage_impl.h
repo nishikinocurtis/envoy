@@ -108,7 +108,7 @@ public:
 
   int32_t write_lsm_force(Buffer::Instance& obj, Event::Dispatcher& tls_dispatcher) override;
 
-  int32_t validate_write_lsm(int32_t siz, int32_t target) const override;
+  int32_t validate_write_lsm(uint64_t siz, int32_t target) const override;
 
   // call makeHttpCall to issue request, pass the target cluster name to it.
   void replicate(const std::string& resource_id) override;
@@ -170,6 +170,10 @@ public:
   void timedCleanUp() override {}
   // Http::AsyncClient::Callbacks
   void onSuccess(const Http::AsyncClient::Request&, Http::ResponseMessagePtr&& response) override {
+#ifdef TIME_EVAL
+    auto enter_now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    printf("non-state req replied: %lld\n", enter_now);
+#endif
     auto stop = std::chrono::high_resolution_clock::now();
     auto bench_marker = response->headers().get(Http::LowerCaseString("x-ftmesh-bench-marker"));
     if (bench_marker.size() != 0) {

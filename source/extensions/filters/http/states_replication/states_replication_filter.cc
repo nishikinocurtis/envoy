@@ -129,7 +129,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
       std::stoul(std::string{headers.get(
           Http::LowerCaseString("x-ftmesh-mode"))[0]->value().getStringView()}, nullptr);
 
-  auto state_length = std::stoul(std::string{headers.ContentLength()->value().getStringView()}, nullptr)
+  auto state_length = std::stoull(std::string{headers.ContentLength()->value().getStringView()}, nullptr)
                       - states_position_;
 
   auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
@@ -154,7 +154,7 @@ Http::FilterHeadersStatus StatesReplicationFilter::decodeHeaders(Http::RequestHe
     headers.setCopy(Http::LowerCaseString("x-ftmesh-mode"), "1");
     // simulate, populate buffer and trigger attached flush
     printf("existing host validation\n");
-    buf_status_ = storage_mgr->validate_write_lsm(state_length, target_no_);
+    buf_status_ = storage_mgr->validate_write_lsm(state_length, target_no_ - 1);
     // how to trigger: validate the host
     // if host match: content-length state_position + flush size
     headers.setContentLength(states_position_ + buf_status_);
@@ -192,6 +192,10 @@ Http::FilterDataStatus StatesReplicationFilter::decodeData(Buffer::Instance &dat
     ENVOY_LOG(debug, "start moving buffer");
     printf("entering buffer processing\n");
     state_obj_->truncateOut(data, states_position_);
+
+#ifdef TIME_EVAL
+    std::cout << "states_position_: " << states_position_ << " obj len: " << state_obj_->length() << std::endl;
+#endif
     // auto resource_id = state_obj_->metadata().resource_id_;
     auto callback = decoder_callbacks_;
     auto storage_mgr = Envoy::States::StorageSingleton::getInstance();
