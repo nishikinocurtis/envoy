@@ -1064,6 +1064,7 @@ pyjwt[crypto]==2.7.0 \
     # via
     #   gidgethub
     #   pygithub
+    #   pyjwt
 pynacl==1.5.0 \
     --hash=sha256:06b8f6fa7f5de8d5d2f7573fe8c863c051225a27b61e6860fd047b1775807858 \
     --hash=sha256:0c84947a22519e013607c9be43706dd42513f9e6ae5d39d3613ca1e142fba44d \
@@ -1221,7 +1222,7 @@ sphinxcontrib-httpdomain==1.8.1 \
     --hash=sha256:21eefe1270e4d9de8d717cc89ee92cc4871b8736774393bafc5e38a6bb77b1d5 \
     --hash=sha256:6c2dfe6ca282d75f66df333869bb0ce7331c01b475db6809ff9d107b7cdfe04b
     # via envoy-docs-sphinx-runner
-sphinxcontrib.jquery @ https://github.com/sphinx-contrib/jquery/archive/refs/tags/v3.0.0.zip \
+sphinxcontrib-jquery @ https://github.com/sphinx-contrib/jquery/archive/refs/tags/v3.0.0.zip \
     --hash=sha256:562ad9ac0ac3d8f04a363eb3507ae4b2b856aa04aabab6df7543530fafb849ca
     # via
     #   -r requirements.in
@@ -1525,9 +1526,9 @@ zstandard==0.21.0 \
     # via envoy-base-utils
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==67.8.0 \
-    --hash=sha256:5df61bf30bb10c6f756eb19e7c9f3b473051f48db77fddbe06ff2ca307df9a6f \
-    --hash=sha256:62642358adc77ffa87233bc4d2354c4b2682d214048f500964dbe760ccedf102
+setuptools==69.1.1 \
+    --hash=sha256:02fa291a0471b3a18b2b2481ed902af520c69e8ae0919c13da936542754b4c56 \
+    --hash=sha256:5c0806c7d9af348e6dd3777b4f4dbb42c7ad85b190104837488eab9a7c945cf8
     # via
     #   -r requirements.in
     #   sphinxcontrib-jquery
